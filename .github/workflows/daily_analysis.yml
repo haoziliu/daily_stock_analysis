@@ -218,6 +218,17 @@ jobs:
           else
             python main.py $FORCE_RUN_ARG
           fi
+
+      - name: 导出静态 JSON 数据
+        run: python export_to_json.py
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: 'daily-stock-analysis'
+          directory: 'public'
       
       - name: 上传分析报告
         uses: actions/upload-artifact@v4
