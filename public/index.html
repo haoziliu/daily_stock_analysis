@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能分析日报</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
@@ -36,7 +37,7 @@
                                 <div class="font-bold text-gray-900">{{ item.name }}</div>
                                 <div class="text-xs text-gray-500 mt-0.5">{{ item.code }}</div>        
                             </div>
-                            <span :class="['text-xl font-black ml-3', getScoreColor(item.sentiment_score)]">
+                            <span :class="['text-l font-black ml-3', getScoreColor(item.sentiment_score)]">
                                 {{ item.sentiment_score }}
                             </span>
                         </div>
