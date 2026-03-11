@@ -15,19 +15,21 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
-    <div id="app" v-cloak class="max-w-md mx-auto md:max-w-4xl min-h-screen flex flex-col md:flex-row">
+    <div id="app" v-cloak class="max-w-md mx-auto md:max-w-4xl h-screen flex flex-col md:flex-row overflow-hidden">
         
-        <div v-if="loading" class="flex-1 flex items-center justify-center min-h-screen">
+        <div v-if="loading" class="flex-1 flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
 
         <template v-else-if="reports.length > 0">
-            <div class="bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 shadow-sm z-10">
-                <div class="p-4 bg-gray-900 text-white">
+            <div class="bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 shadow-sm z-10 flex flex-col md:h-full">
+                
+                <div class="p-4 bg-gray-900 text-white flex-shrink-0">
                     <h1 class="text-lg font-bold">每日智能复盘</h1>
                     <p class="text-xs text-gray-400 mt-1">更新于: {{ updateTime }}</p>
                 </div>
-                <div class="flex md:flex-col overflow-x-auto md:overflow-y-auto" style="max-height: calc(100vh - 76px);">
+                
+                <div class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:flex-1">
                     <button v-for="(item, index) in reports" :key="item.code" 
                             @click="selectedIndex = index"
                             :class="['p-4 text-left border-b border-gray-100 min-w-[160px] transition-colors', 
@@ -302,7 +304,9 @@
                     try {
                         const response = await fetch('./daily_report.json?t=' + new Date().getTime())
                         const data = await response.json()
-                        reports.value = data.reports || []
+                        let fetchedReports = data.reports || []
+                        fetchedReports.sort((a, b) => b.sentiment_score - a.sentiment_score)
+                        reports.value = fetchedReports
                         updateTime.value = data.update_time || ''
                     } catch (error) {
                         console.error('获取数据失败:', error)
