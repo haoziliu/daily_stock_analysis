@@ -26,6 +26,11 @@ export type SystemConfigUIControl =
   | 'switch'
   | 'time';
 
+export interface SystemConfigOption {
+  label: string;
+  value: string;
+}
+
 export interface SystemConfigFieldSchema {
   key: string;
   title?: string;
@@ -37,7 +42,7 @@ export interface SystemConfigFieldSchema {
   isRequired: boolean;
   isEditable: boolean;
   defaultValue?: string | null;
-  options: string[];
+  options: Array<string | SystemConfigOption>;
   validation: Record<string, unknown>;
   displayOrder: number;
 }
@@ -70,6 +75,12 @@ export interface SystemConfigResponse {
   updatedAt?: string;
 }
 
+export interface ExportSystemConfigResponse {
+  content: string;
+  configVersion: string;
+  updatedAt?: string;
+}
+
 export interface SystemConfigUpdateItem {
   key: string;
   value: string;
@@ -94,6 +105,12 @@ export interface UpdateSystemConfigResponse {
 
 export interface ValidateSystemConfigRequest {
   items: SystemConfigUpdateItem[];
+}
+
+export interface ImportSystemConfigRequest {
+  configVersion: string;
+  content: string;
+  reloadNow?: boolean;
 }
 
 export interface ConfigValidationIssue {

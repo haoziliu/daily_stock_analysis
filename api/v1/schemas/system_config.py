@@ -8,6 +8,13 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class SystemConfigOption(BaseModel):
+    """Select option metadata for frontend rendering."""
+
+    label: str
+    value: str
+
+
 class SystemConfigFieldSchema(BaseModel):
     """Metadata schema for a single config field."""
 
@@ -21,7 +28,7 @@ class SystemConfigFieldSchema(BaseModel):
     is_required: bool
     is_editable: bool
     default_value: Optional[str] = None
-    options: List[str] = Field(default_factory=list)
+    options: List[str | SystemConfigOption] = Field(default_factory=list)
     validation: Dict[str, Any] = Field(default_factory=dict)
     display_order: int
 
@@ -64,6 +71,14 @@ class SystemConfigResponse(BaseModel):
     updated_at: Optional[str] = None
 
 
+class ExportSystemConfigResponse(BaseModel):
+    """Desktop-only export payload for raw `.env` backups."""
+
+    content: str
+    config_version: str
+    updated_at: Optional[str] = None
+
+
 class SystemConfigUpdateItem(BaseModel):
     """Single key-value update item."""
 
@@ -96,6 +111,14 @@ class ValidateSystemConfigRequest(BaseModel):
     """Validation request payload."""
 
     items: List[SystemConfigUpdateItem] = Field(..., min_length=1)
+
+
+class ImportSystemConfigRequest(BaseModel):
+    """Desktop-only import request payload."""
+
+    config_version: str
+    content: str
+    reload_now: bool = True
 
 
 class ConfigValidationIssue(BaseModel):
