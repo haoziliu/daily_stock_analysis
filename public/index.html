@@ -15,7 +15,7 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
-    <div id="app" v-cloak class="max-w-md mx-auto md:max-w-4xl h-screen flex flex-col md:flex-row overflow-hidden">
+    <div id="app" v-cloak class="max-w-md mx-auto md:max-w-5xl h-screen flex flex-col md:flex-row overflow-hidden">
         
         <div v-if="loading" class="flex-1 flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -39,8 +39,8 @@
                                 <div class="font-bold text-gray-900">{{ item.name }}</div>
                                 <div class="text-xs text-gray-500 mt-0.5">{{ item.code }}</div>        
                             </div>
-                            <span :class="['text-l font-black ml-3', getScoreColor(item.sentiment_score)]">
-                                {{ item.sentiment_score }}
+                            <span :class="['text-xl font-black ml-3', getScoreColor(getOverallScore(item))]">
+                                {{ getOverallScore(item) }}
                             </span>
                         </div>
                     </button>
@@ -55,41 +55,49 @@
                         <div class="text-sm text-gray-500 mt-1">{{ current.code }} | 分析日期: {{ current.created_at.split(' ')[0] }}</div>
                     </div>                   
 
-                    <div class="flex items-center space-x-6">
-                        <div class="relative w-24 h-12 flex-shrink-0 mb-1" title="AI 综合情感评分">
-                            <svg viewBox="0 0 100 50" class="w-full h-full overflow-visible">
-                                <path d="M 10 50 A 40 40 0 0 1 90 50" 
-                                      fill="none" stroke="#f1f5f9" stroke-width="10" stroke-linecap="round" />
-                                <path d="M 10 50 A 40 40 0 0 1 90 50" 
-                                      fill="none" 
-                                      :class="['stroke-current transition-all duration-1000 ease-out', getScoreColor(current.sentiment_score)]"
-                                      stroke-width="10" stroke-linecap="round" 
-                                      stroke-dasharray="125.66" 
-                                      :stroke-dashoffset="125.66 * (1 - current.sentiment_score / 100)" />
-                            </svg>
-                            <div class="absolute bottom-0 left-0 w-full text-center flex flex-col items-center justify-end translate-y-2">
-                                <span :class="['text-lg font-black leading-none', getScoreColor(current.sentiment_score)]">
-                                    {{ current.sentiment_score }}
-                                </span>
-                            </div>
+                    <div class="text-right flex-shrink-0">
+                        <div :class="['text-2xl font-bold', current.change_pct >= 0 ? 'text-green-600' : 'text-red-600']">
+                            {{ current.current_price.toFixed(2) }}
                         </div>
-
-                        <div class="text-right flex-shrink-0"+>
-                            <div :class="['text-2xl font-bold', current.change_pct >= 0 ? 'text-green-600' : 'text-red-600']">
-                                {{ current.current_price.toFixed(2) }}
-                            </div>
-                            <div :class="['text-sm font-medium', current.change_pct >= 0 ? 'text-green-600' : 'text-red-600']">
-                                {{ current.change_pct > 0 ? '+' : '' }}{{ current.change_pct }}%
-                            </div>
+                        <div :class="['text-sm font-medium', current.change_pct >= 0 ? 'text-green-600' : 'text-red-600']">
+                            {{ current.change_pct > 0 ? '+' : '' }}{{ current.change_pct }}%
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                    <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">🤖 AI 综合诊断</h3>
-                    <p class="text-sm text-gray-600 leading-relaxed">
-                        {{ current.analysis_summary }}
-                    </p>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    
+                    <div class="md:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col justify-center">
+                        <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">🤖 AI 综合诊断</h3>
+                        <p class="text-sm text-gray-600 leading-relaxed">
+                            {{ current.analysis_summary }}
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col items-center justify-center relative" title="严格遵循“顺势交易”的动态加权计算">
+                        <div class="text-xs text-gray-500 font-bold mb-4 tracking-wider text-center">综合操盘分</div>
+                        
+                        <div class="relative w-28 h-14 flex-shrink-0 flex flex-col items-center">
+                            <div class="relative w-full h-full">
+                                <svg viewBox="0 0 100 50" class="w-full h-full overflow-visible">
+                                    <path d="M 10 50 A 40 40 0 0 1 90 50" 
+                                          fill="none" stroke="#f1f5f9" stroke-width="10" stroke-linecap="round" />
+                                    <path d="M 10 50 A 40 40 0 0 1 90 50" 
+                                          fill="none" 
+                                          :class="['stroke-current transition-all duration-1000 ease-out', getScoreColor(getOverallScore(current))]"
+                                          stroke-width="10" stroke-linecap="round" 
+                                          stroke-dasharray="125.66" 
+                                          :stroke-dashoffset="125.66 * (1 - getOverallScore(current) / 100)" />
+                                </svg>
+                                <div class="absolute bottom-0 left-0 w-full text-center flex flex-col items-center justify-end translate-y-3">
+                                    <span :class="['text-3xl font-black leading-none', getScoreColor(getOverallScore(current))]">
+                                        {{ getOverallScore(current) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 mb-4">
@@ -280,14 +288,34 @@
                     return reports.value.length > 0 ? reports.value[selectedIndex.value] : null
                 })
 
-                // ---- 核心颜色计算逻辑 ----
+// ---- 核心计算逻辑 ----
                 
-                // 评分颜色：四级阶梯
+                // 🎯 升级版：严格遵循“顺势交易”的动态加权计算
+                const getOverallScore = (item) => {
+                    if (!item) return 0;
+                    const trend = item.dashboard?.data_perspective?.trend_status?.trend_score || item.sentiment_score;
+                    const sentiment = item.sentiment_score;
+
+                    // 1. 空头排列（破位下跌）：趋势拥有一票否决权，极度压缩情绪权重
+                    if (trend <= 30) {
+                        return Math.round(trend * 0.8 + sentiment * 0.2);
+                    } 
+                    // 2. 多头排列（主升浪）：趋势确认安全，利好情绪起乘数放大作用
+                    else if (trend >= 60) {
+                        return Math.round(trend * 0.5 + sentiment * 0.5);
+                    } 
+                    // 3. 震荡修复（筑底/横盘）：技术面防守为主，情绪面辅助
+                    else {
+                        return Math.round(trend * 0.7 + sentiment * 0.3);
+                    }
+                }
+
+                // 评分颜色：四级阶梯 (根据综合分判断)
                 const getScoreColor = (score) => {
-                    if (score >= 60) return 'text-green-500';  // 🟢 乐观
+                    if (score >= 60) return 'text-green-500';  // 🟢 乐观/多头
                     if (score >= 40) return 'text-slate-400';  // ⚪ 观望/震荡
                     if (score >= 33) return 'text-orange-500'; // 🟠 偏悲观/减仓
-                    return 'text-red-600';                     // 🔴 警报/看空
+                    return 'text-red-600';                     // 🔴 警报/空头
                 }
 
                 // 操作建议颜色
@@ -305,7 +333,10 @@
                         const response = await fetch('./daily_report.json?t=' + new Date().getTime())
                         const data = await response.json()
                         let fetchedReports = data.reports || []
-                        fetchedReports.sort((a, b) => b.sentiment_score - a.sentiment_score)
+                        
+                        // 🎯 修改排序逻辑：按全新的“综合评分”降序排列
+                        fetchedReports.sort((a, b) => getOverallScore(b) - getOverallScore(a))
+                        
                         reports.value = fetchedReports
                         updateTime.value = data.update_time || ''
                     } catch (error) {
@@ -318,7 +349,7 @@
 
                 return { 
                     reports, updateTime, selectedIndex, current, loading,
-                    getScoreColor, getAdviceColor
+                    getScoreColor, getAdviceColor, getOverallScore // 👈 别忘了把新函数导出给 HTML 用
                 }
             }
         }).mount('#app')
