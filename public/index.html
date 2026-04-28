@@ -8,10 +8,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; transition: background 0.2s; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         [v-cloak] { display: none; }
         .table-container { overflow-x: auto; }
+        .glass-header { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
@@ -32,11 +36,11 @@
                 <div class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:flex-1">
                     <button v-for="(item, index) in reports" :key="item.code" 
                             @click="selectedIndex = index"
-                            :class="['p-4 text-left border-b border-gray-100 min-w-[160px] transition-colors', 
-                                     selectedIndex === index ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-gray-50']">
+                            :class="['p-4 text-left border-b border-gray-100 min-w-[160px] transition-all duration-200 border-l-4', 
+                                     selectedIndex === index ? 'bg-blue-50/80 border-blue-600' : 'border-transparent hover:bg-gray-50']">
                         <div class="flex justify-between items-center w-full">
                             <div>
-                                <div class="font-bold text-gray-900">{{ item.name }}</div>
+                                <div class="font-bold text-sm text-gray-900">{{ item.name }}</div>
                                 <div class="text-xs text-gray-500 mt-0.5">{{ item.code }}</div>        
                             </div>
                             <span :class="['text-xl font-black ml-3', getScoreColor(getOverallScore(item))]">
@@ -47,11 +51,11 @@
                 </div>
             </div>
 
-            <div class="flex-1 p-4 md:p-6 overflow-y-auto bg-gray-50" v-if="current && current.dashboard">
+            <div class="flex-1 bg-gray-50 overflow-y-auto relative" v-if="current && current.dashboard">
                 
-                <div class="flex justify-between items-end mb-6">
+                <div class="sticky top-0 flex justify-between items-end p-4 md:px-6 md:py-4 glass-header border-b border-gray-200 shadow-sm z-20">
                     <div>
-                        <h2 class="text-2xl font-black text-gray-900">{{ current.name }}</h2>
+                        <h2 class="text-lg font-black text-gray-900">{{ current.name }}</h2>
                         <div class="text-sm text-gray-500 mt-1">{{ current.code }} | 分析日期: {{ current.created_at.split(' ')[0] }}</div>
                     </div>                   
 
@@ -59,16 +63,17 @@
                         <div :class="['text-2xl font-bold', current.change_pct >= 0 ? 'text-green-600' : 'text-red-600']">
                             {{ current.current_price.toFixed(2) }}
                         </div>
-                        <div :class="['text-sm font-medium', current.change_pct >= 0 ? 'text-green-600' : 'text-red-600']">
+                        <div :class="['text-sm font-bold px-2.5 py-0.5 mt-1 rounded-full inline-block', current.change_pct >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">
                             {{ current.change_pct > 0 ? '+' : '' }}{{ current.change_pct }}%
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="p-4 md:p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     
                     <div class="md:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col justify-center">
-                        <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3">🤖 AI 综合诊断</h3>
+                        <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3 flex items-center"><span class="mr-2 text-lg">🤖</span> AI 综合诊断</h3>
                         <p class="text-sm text-gray-600 leading-relaxed">
                             {{ current.analysis_summary }}
                         </p>
