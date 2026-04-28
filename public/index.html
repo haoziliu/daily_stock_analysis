@@ -28,9 +28,9 @@
         <template v-else-if="reports.length > 0">
             <div class="bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 shadow-sm z-10 flex flex-col md:h-full">
                 
-                <div class="p-4 bg-gray-900 text-white flex-shrink-0">
-                    <h1 class="text-lg font-bold">每日智能复盘</h1>
-                    <p class="text-xs text-gray-400 mt-1">更新于: {{ updateTime }}</p>
+                <div class="p-3 md:p-4 bg-gray-900 text-white flex-shrink-0 flex justify-between items-center md:block">
+                    <h1 class="text-base md:text-lg font-bold">每日智能复盘</h1>
+                    <p class="text-xs text-gray-400 mt-0 md:mt-1">更新于: {{ updateTime }}</p>
                 </div>
                 
                 <div class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:flex-1">
@@ -53,7 +53,7 @@
 
             <div class="flex-1 bg-gray-50 overflow-y-auto relative" v-if="current && current.dashboard">
                 
-                <div class="sticky top-0 flex justify-between items-end p-4 md:px-6 md:py-4 glass-header border-b border-gray-200 shadow-sm z-20">
+                <div class="relative md:sticky md:top-0 flex justify-between items-end p-3 md:px-6 md:py-4 glass-header border-b border-gray-200 shadow-sm z-20">
                     <div>
                         <h2 class="text-lg font-black text-gray-900">{{ current.name }}</h2>
                         <div class="text-sm text-gray-500 mt-1">{{ current.code }} | 分析日期: {{ current.created_at.split(' ')[0] }}</div>
