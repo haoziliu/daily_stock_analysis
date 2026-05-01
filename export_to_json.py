@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import os
+import glob
 from datetime import datetime
 
 # 数据库路径
@@ -8,13 +9,35 @@ DB_PATH = "data/stock_analysis.db"
 # 静态页面所在的产物目录
 OUTPUT_DIR = "public"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "daily_report.json")
+# 报告目录
+REPORTS_DIR = "reports"
 
 def export_data():
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
+    # 1. 尝试获取最新的市场大盘复盘分析
+    market_review_content = None
+    market_review_date = None
+    if os.path.exists(REPORTS_DIR):
+        market_files = glob.glob(os.path.join(REPORTS_DIR, "market_review_*.md"))
+        if market_files:
+            # 找到最新生成的大盘复盘文件
+            latest_file = max(market_files, key=os.path.getctime)
+            try:
+                with open(latest_file, 'r', encoding='utf-8') as f:
+                    market_review_content = f.read()
+                
+                # 从文件名提取日期 (例如: market_review_20260501.md -> 2026-05-01)
+                basename = os.path.basename(latest_file)
+                date_part = basename.replace('market_review_', '').replace('.md', '')
+                if len(date_part) == 8:
+                    market_review_date = f"{date_part[:4]}-{date_part[4:6]}-{date_part[6:8]}"
+            except Exception as e:
+                print(f"读取大盘复盘文件失败: {e}")
+
     if not os.path.exists(DB_PATH):
-        print(f"❌ 找不到数据库文件: {DB_PATH}")
+        print(f"找不到数据库文件: {DB_PATH}")
         return
 
     conn = sqlite3.connect(DB_PATH)
@@ -67,6 +90,10 @@ def export_data():
         final_json = {
             "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "total_count": len(data),
+            "market_review": {
+                "date": market_review_date,
+                "content": market_review_content
+            } if market_review_content else None,
             "reports": data
         }
 
@@ -74,10 +101,10 @@ def export_data():
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
             json.dump(final_json, f, ensure_ascii=False, indent=2)
 
-        print(f"✅ 成功提取 {len(data)} 只股票的最新记录 (7天内) 至 {OUTPUT_FILE}")
+        print(f"成功提取 {len(data)} 只股票最新记录 与 市场复盘 至 {OUTPUT_FILE}")
 
     except sqlite3.OperationalError as e:
-        print(f"❌ 数据库查询错误: {e}")
+        print(f"数据库查询错误: {e}")
     finally:
         conn.close()
 

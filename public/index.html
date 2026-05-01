@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能分析日报</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">    
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
         body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
@@ -25,7 +26,7 @@
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
 
-        <template v-else-if="reports.length > 0">
+        <template v-else-if="reports.length > 0 || marketReview">
             <div class="bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 shadow-sm z-10 flex flex-col md:h-full">
                 
                 <div class="p-3 md:p-4 bg-gray-900 text-white flex-shrink-0 flex justify-between items-center md:block">
@@ -34,6 +35,19 @@
                 </div>
                 
                 <div class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:flex-1">
+                    
+                    <button v-if="marketReview" @click="selectedIndex = -1"
+                            :class="['p-4 text-left border-b border-gray-100 min-w-[160px] transition-all duration-200 border-l-4', 
+                                     selectedIndex === -1 ? 'bg-blue-50/80 border-blue-600' : 'border-transparent hover:bg-gray-50']">
+                        <div class="flex justify-between items-center w-full">
+                            <div>
+                                <div class="font-bold text-sm text-gray-900">大盘复盘</div>
+                                <div class="text-xs text-gray-500 mt-0.5">{{ marketReview.date }}</div>
+                            </div>
+                            <span class="text-xl font-black ml-3 text-blue-500">🎯</span>
+                        </div>
+                    </button>
+
                     <button v-for="(item, index) in reports" :key="item.code" 
                             @click="selectedIndex = index"
                             :class="['p-4 text-left border-b border-gray-100 min-w-[160px] transition-all duration-200 border-l-4', 
@@ -51,7 +65,11 @@
                 </div>
             </div>
 
-            <div class="flex-1 bg-gray-50 overflow-y-auto relative" v-if="current && current.dashboard">
+            <div v-if="selectedIndex === -1 && marketReview" class="flex-1 bg-white overflow-y-auto p-4 md:p-8">
+                <div class="prose prose-blue max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-img:rounded-xl" v-html="parsedMarkdown"></div>
+            </div>
+
+            <div class="flex-1 bg-gray-50 overflow-y-auto relative" v-else-if="selectedIndex >= 0 && current && current.dashboard">
                 
                 <div class="relative md:sticky md:top-0 flex justify-between items-end p-3 md:px-6 md:py-4 glass-header border-b border-gray-200 shadow-sm z-20">
                     <div>
@@ -60,11 +78,11 @@
                     </div>                   
 
                     <div class="text-right flex-shrink-0">
-                        <div :class="['text-2xl font-bold', current.change_pct >= 0 ? 'text-green-600' : 'text-red-600']">
-                            {{ current.current_price.toFixed(2) }}
+                        <div :class="['text-2xl font-bold', (current.change_pct !== null ? current.change_pct : current.realtime_quote?.change_pct || 0) >= 0 ? 'text-green-600' : 'text-red-600']">
+                            {{ (current.current_price !== null ? current.current_price : current.realtime_quote?.price || 0).toFixed(2) }}
                         </div>
-                        <div :class="['text-sm font-bold px-2.5 py-0.5 mt-1 rounded-full inline-block', current.change_pct >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">
-                            {{ current.change_pct > 0 ? '+' : '' }}{{ current.change_pct }}%
+                        <div :class="['text-sm font-bold px-2.5 py-0.5 mt-1 rounded-full inline-block', (current.change_pct !== null ? current.change_pct : current.realtime_quote?.change_pct || 0) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">
+                            {{ (current.change_pct !== null ? current.change_pct : current.realtime_quote?.change_pct || 0) > 0 ? '+' : '' }}{{ (current.change_pct !== null ? current.change_pct : current.realtime_quote?.change_pct || 0) }}%
                         </div>
                     </div>
                 </div>
@@ -286,11 +304,19 @@
             setup() {
                 const reports = ref([])
                 const updateTime = ref('')
+                const marketReview = ref(null)
                 const selectedIndex = ref(0)
                 const loading = ref(true)
 
                 const current = computed(() => {
-                    return reports.value.length > 0 ? reports.value[selectedIndex.value] : null
+                    return (selectedIndex.value >= 0 && reports.value.length > 0) ? reports.value[selectedIndex.value] : null
+                })
+
+                const parsedMarkdown = computed(() => {
+                    if (marketReview.value && marketReview.value.content) {
+                        return marked.parse(marketReview.value.content)
+                    }
+                    return ''
                 })
 
 // ---- 核心计算逻辑 ----
@@ -344,6 +370,13 @@
                         
                         reports.value = fetchedReports
                         updateTime.value = data.update_time || ''
+                        
+                        if (data.market_review) {
+                            marketReview.value = data.market_review
+                            selectedIndex.value = -1 // 默认显示大盘
+                        } else {
+                            selectedIndex.value = 0
+                        }
                     } catch (error) {
                         console.error('获取数据失败:', error)
                         alert('获取最新报告失败，请检查数据文件。')
@@ -353,7 +386,7 @@
                 })
 
                 return { 
-                    reports, updateTime, selectedIndex, current, loading,
+                    reports, updateTime, marketReview, selectedIndex, current, loading, parsedMarkdown,
                     getScoreColor, getAdviceColor, getOverallScore // 👈 别忘了把新函数导出给 HTML 用
                 }
             }
