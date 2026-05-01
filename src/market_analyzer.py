@@ -131,8 +131,6 @@ class MarketAnalyzer:
         configured = normalize_report_language(
             getattr(getattr(self, "config", None), "report_language", "zh")
         )
-        if self.region == "us":
-            return "en"
         return configured
 
     def _get_template_review_language(self) -> str:
