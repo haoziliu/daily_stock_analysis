@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from src.config import AGENT_MAX_STEPS_DEFAULT
 
-SCHEMA_VERSION = "2026-03-29"
+SCHEMA_VERSION = "2026-05-05"
 
 _CATEGORY_DEFINITIONS: List[Dict[str, Any]] = [
     {
@@ -79,13 +79,29 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": [],
         "validation": {"min_items": 1},
         "display_order": 10,
+        "help_key": "settings.base.STOCK_LIST",
+        "examples": [
+            "STOCK_LIST=600519,300750,002594",
+            "STOCK_LIST=600519,hk00700,AAPL",
+        ],
+        "docs": [
+            {
+                "label": "完整指南：环境变量完整列表",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#环境变量完整列表",
+            },
+            {
+                "label": "Tushare 股票列表指南",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/TUSHARE_STOCK_LIST_GUIDE.md",
+            },
+        ],
+        "warning_codes": [],
     },
     # ------------------------------------------------------------------
     # AI Model – LiteLLM unified config
     # ------------------------------------------------------------------
     "LITELLM_MODEL": {
         "title": "Primary Model",
-        "description": "Primary model in provider/model format (e.g. gemini/gemini-3-flash-preview, deepseek/deepseek-v4-flash, anthropic/claude-3-5-sonnet-20241022). If empty, it is auto-inferred from available API keys or channel declarations.",
+        "description": "Primary model in provider/model format (e.g. gemini/gemini-3.1-pro-preview, deepseek/deepseek-v4-flash, anthropic/claude-sonnet-4-6). If empty, it is auto-inferred from available API keys or channel declarations.",
         "category": "ai_model",
         "data_type": "string",
         "ui_control": "text",
@@ -96,6 +112,23 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": [],
         "validation": {},
         "display_order": 1,
+        "help_key": "settings.ai_model.LITELLM_MODEL",
+        "examples": [
+            "LITELLM_MODEL=deepseek/deepseek-v4-flash",
+            "LITELLM_MODEL=gemini/gemini-3.1-pro-preview",
+            "LITELLM_MODEL=ollama/qwen3:8b",
+        ],
+        "docs": [
+            {
+                "label": "LLM 配置指南",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/LLM_CONFIG_GUIDE.md",
+            },
+            {
+                "label": "完整指南：AI 模型配置",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#ai-模型配置",
+            },
+        ],
+        "warning_codes": ["provider_prefix_required"],
     },
     "AGENT_LITELLM_MODEL": {
         "title": "Agent Primary Model",
@@ -113,7 +146,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     },
     "LITELLM_FALLBACK_MODELS": {
         "title": "Fallback Models",
-        "description": "Comma-separated fallback models tried when the primary model fails (e.g. anthropic/claude-3-5-sonnet-20241022,openai/gpt-4o-mini). Useful for cross-provider redundancy.",
+        "description": "Comma-separated fallback models tried when the primary model fails (e.g. anthropic/claude-sonnet-4-6,openai/gpt-5.4-mini). Useful for cross-provider redundancy.",
         "category": "ai_model",
         "data_type": "string",
         "ui_control": "text",
@@ -155,6 +188,24 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": [],
         "validation": {},
         "display_order": 4,
+        "help_key": "settings.ai_model.LLM_CHANNELS",
+        "examples": [
+            "LLM_CHANNELS=deepseek,aihubmix",
+            "LLM_DEEPSEEK_BASE_URL=https://api.deepseek.com",
+            "LLM_DEEPSEEK_API_KEY=sk-xxxx",
+            "LLM_DEEPSEEK_MODELS=deepseek-v4-flash,deepseek-v4-pro",
+        ],
+        "docs": [
+            {
+                "label": "LLM 配置指南：渠道模式",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/LLM_CONFIG_GUIDE.md#方式二渠道channels模式配置适合进阶多模型",
+            },
+            {
+                "label": "LLM 服务商配置速查",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/llm-providers.md",
+            },
+        ],
+        "warning_codes": ["channels_override_legacy_keys"],
     },
     "LLM_TEMPERATURE": {
         "title": "Temperature",
@@ -183,6 +234,48 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": [],
         "validation": {},
         "display_order": 5,
+    },
+    "ANSPIRE_LLM_ENABLED": {
+        "title": "Anspire LLM Enabled",
+        "description": "Use ANSPIRE_API_KEYS as an OpenAI-compatible Anspire LLM key when no higher-priority LLM channel or OpenAI-compatible key is configured.",
+        "category": "ai_model",
+        "data_type": "boolean",
+        "ui_control": "switch",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": "true",
+        "options": [],
+        "validation": {},
+        "display_order": 6,
+    },
+    "ANSPIRE_LLM_BASE_URL": {
+        "title": "Anspire LLM Base URL",
+        "description": "Anspire OpenAI-compatible gateway. Default: https://open-gateway.anspire.cn/v6; global endpoint: https://open-gateway.anspire.ai/v6.",
+        "category": "ai_model",
+        "data_type": "string",
+        "ui_control": "text",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": "https://open-gateway.anspire.cn/v6",
+        "options": [],
+        "validation": {"format": "url"},
+        "display_order": 7,
+    },
+    "ANSPIRE_LLM_MODEL": {
+        "title": "Anspire LLM Model",
+        "description": "Default model used when ANSPIRE_API_KEYS enables the Anspire LLM gateway without an explicit LITELLM_MODEL.",
+        "category": "ai_model",
+        "data_type": "string",
+        "ui_control": "text",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": "Doubao-Seed-2.0-lite",
+        "options": [],
+        "validation": {},
+        "display_order": 8,
     },
     # ------------------------------------------------------------------
     # AI Model – DeepSeek official (independent from OpenAI-compatible)
@@ -273,7 +366,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     },
     "ANSPIRE_API_KEYS": {
         "title": "Anspire API Keys",
-        "description": "Comma-separated Anspire Search API keys.",
+        "description": "Comma-separated Anspire Open API keys. Used by Anspire Search and, by default, the Anspire OpenAI-compatible LLM gateway.",
         "category": "data_source",
         "data_type": "string",
         "ui_control": "password",
@@ -537,7 +630,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "is_sensitive": False,
         "is_required": False,
         "is_editable": True,
-        "default_value": "gemini-3-flash-preview",
+        "default_value": "gemini-3.1-pro-preview",
         "options": [],
         "validation": {},
         "display_order": 20,
@@ -551,7 +644,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "is_sensitive": False,
         "is_required": False,
         "is_editable": True,
-        "default_value": "gemini-2.5-flash",
+        "default_value": "gemini-3-flash-preview",
         "options": [],
         "validation": {},
         "display_order": 21,
@@ -621,7 +714,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "is_sensitive": False,
         "is_required": False,
         "is_editable": True,
-        "default_value": "gpt-4o-mini",
+        "default_value": "gpt-5.5",
         "options": [],
         "validation": {},
         "display_order": 60,
@@ -684,14 +777,14 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     },
     "ANTHROPIC_MODEL": {
         "title": "Anthropic Model",
-        "description": "Claude 模型名称（如 claude-3-5-sonnet-20241022）。",
+        "description": "Claude 模型名称（如 claude-sonnet-4-6）。",
         "category": "ai_model",
         "data_type": "string",
         "ui_control": "text",
         "is_sensitive": False,
         "is_required": False,
         "is_editable": True,
-        "default_value": "claude-3-5-sonnet-20241022",
+        "default_value": "claude-sonnet-4-6",
         "options": [],
         "validation": {},
         "display_order": 36,
@@ -808,6 +901,23 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "validation": {},
         "display_order": 51,
     },
+    "CUSTOM_WEBHOOK_BODY_TEMPLATE": {
+        "title": "Custom Webhook Body Template",
+        "description": (
+            "Optional JSON body template for custom webhooks. Supports $content_json, "
+            "$content, $title_json, and $title placeholders."
+        ),
+        "category": "notification",
+        "data_type": "string",
+        "ui_control": "textarea",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": None,
+        "options": [],
+        "validation": {},
+        "display_order": 52,
+    },
     "WEBHOOK_VERIFY_SSL": {
         "title": "Webhook SSL Verify",
         "description": "Verify HTTPS certificates for webhook requests. Set to false ONLY for self-signed certs in trusted internal networks. WARNING: Disabling allows MITM attacks—do NOT use on public networks.",
@@ -820,7 +930,7 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "default_value": "true",
         "options": [],
         "validation": {},
-        "display_order": 52,
+        "display_order": 53,
     },
     "REPORT_SUMMARY_ONLY": {
         "title": "Report Summary Only",
@@ -855,6 +965,23 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             "allowed_schemes": ["http", "https"],
         },
         "display_order": 12,
+        "help_key": "settings.notification.FEISHU_WEBHOOK_URL",
+        "examples": [
+            "FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/your_hook_token",
+            "FEISHU_WEBHOOK_SECRET=your_feishu_webhook_secret",
+            "FEISHU_WEBHOOK_KEYWORD=股票日报",
+        ],
+        "docs": [
+            {
+                "label": "完整指南：飞书通知配置",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#飞书",
+            },
+            {
+                "label": "飞书机器人配置专题",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/bot/feishu-bot-config.md",
+            },
+        ],
+        "warning_codes": ["feishu_webhook_not_app_secret"],
     },
     "FEISHU_WEBHOOK_SECRET": {
         "title": "Feishu Webhook Secret",
@@ -1168,6 +1295,37 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "validation": {},
         "display_order": 45,
     },
+    "ASTRBOT_URL": {
+        "title": "AstrBot URL",
+        "description": "AstrBot webhook endpoint URL.",
+        "category": "notification",
+        "data_type": "string",
+        "ui_control": "password",
+        "is_sensitive": True,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": None,
+        "options": [],
+        "validation": {
+            "item_type": "url",
+            "allowed_schemes": ["http", "https"],
+        },
+        "display_order": 46,
+    },
+    "ASTRBOT_TOKEN": {
+        "title": "AstrBot Token",
+        "description": "Optional AstrBot bearer token.",
+        "category": "notification",
+        "data_type": "string",
+        "ui_control": "password",
+        "is_sensitive": True,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": None,
+        "options": [],
+        "validation": {},
+        "display_order": 47,
+    },
     "SINGLE_STOCK_NOTIFY": {
         "title": "Single Stock Notify",
         "description": "Push immediately after each single stock analysis instead of batching all results together.",
@@ -1338,6 +1496,36 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         "validation": {"enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]},
         "display_order": 30,
+    },
+    "WEBUI_HOST": {
+        "title": "Web UI Host",
+        "description": "Host address for Web UI service binding.",
+        "category": "system",
+        "data_type": "string",
+        "ui_control": "text",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": "127.0.0.1",
+        "options": [],
+        "validation": {},
+        "display_order": 39,
+        "help_key": "settings.system.WEBUI_HOST",
+        "examples": [
+            "WEBUI_HOST=127.0.0.1",
+            "WEBUI_HOST=0.0.0.0",
+        ],
+        "docs": [
+            {
+                "label": "云服务器访问 WebUI",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/deploy-webui-cloud.md",
+            },
+            {
+                "label": "完整指南：WebUI 与 API",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#webui-与-api-服务",
+            },
+        ],
+        "warning_codes": ["public_bind_requires_auth", "restart_required"],
     },
     "WEBUI_PORT": {
         "title": "Web UI Port",
@@ -1786,7 +1974,10 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     },
     "AGENT_EVENT_ALERT_RULES_JSON": {
         "title": "Event Alert Rules",
-        "description": "JSON array of Event Monitor rules loaded by schedule mode for background alert polling.",
+        "description": (
+            "JSON array of Event Monitor rules loaded by schedule mode. "
+            "Supported alert_type values: price_cross, price_change_percent, volume_spike."
+        ),
         "category": "agent",
         "data_type": "json",
         "ui_control": "textarea",

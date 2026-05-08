@@ -108,6 +108,78 @@ class TestFeishuWebhookFieldsRegistered(unittest.TestCase):
             self.assertIn(key, field_keys, f"{key} missing from schema response")
 
 
+class TestAstrBotFieldsRegistered(unittest.TestCase):
+    """AstrBot config keys must be explicitly registered for settings UI."""
+
+    _ASTRBOT_KEYS = ("ASTRBOT_URL", "ASTRBOT_TOKEN")
+
+    def test_field_definitions_exist(self):
+        for key in self._ASTRBOT_KEYS:
+            field = get_field_definition(key)
+            self.assertEqual(field["category"], "notification", f"{key} category")
+            self.assertNotEqual(
+                field["display_order"], 9000,
+                f"{key} should be explicitly registered, not inferred",
+            )
+
+    def test_url_and_token_are_sensitive_password_controls(self):
+        for key in self._ASTRBOT_KEYS:
+            field = get_field_definition(key)
+            self.assertTrue(field["is_sensitive"], f"{key} should be sensitive")
+            self.assertEqual(field["ui_control"], "password")
+
+    def test_url_uses_url_validation(self):
+        field = get_field_definition("ASTRBOT_URL")
+        self.assertEqual(field["validation"]["item_type"], "url")
+        self.assertIn("https", field["validation"]["allowed_schemes"])
+
+    def test_schema_response_includes_astrbot_fields(self):
+        schema = build_schema_response()
+        notification_cat = next(
+            (c for c in schema["categories"] if c["category"] == "notification"),
+            None,
+        )
+        self.assertIsNotNone(notification_cat, "notification category missing")
+        field_keys = {f["key"] for f in notification_cat["fields"]}
+        for key in self._ASTRBOT_KEYS:
+            self.assertIn(key, field_keys, f"{key} missing from schema response")
+
+
+class TestSettingsHelpMetadata(unittest.TestCase):
+    """Field help metadata should be available for the first settings help slice."""
+
+    _HELP_KEYS = (
+        "STOCK_LIST",
+        "LITELLM_MODEL",
+        "LLM_CHANNELS",
+        "FEISHU_WEBHOOK_URL",
+        "WEBUI_HOST",
+    )
+
+    def test_representative_fields_have_help_metadata(self):
+        for key in self._HELP_KEYS:
+            field = get_field_definition(key)
+            self.assertTrue(field.get("help_key"), f"{key} missing help_key")
+            self.assertTrue(field.get("examples"), f"{key} missing examples")
+            self.assertTrue(field.get("docs"), f"{key} missing docs")
+
+    def test_webui_host_is_explicitly_registered(self):
+        field = get_field_definition("WEBUI_HOST")
+        self.assertEqual(field["category"], "system")
+        self.assertNotEqual(field["display_order"], 9000)
+
+    def test_schema_response_includes_help_metadata(self):
+        schema = build_schema_response()
+        fields = {
+            field["key"]: field
+            for category in schema["categories"]
+            for field in category["fields"]
+        }
+
+        self.assertEqual(fields["STOCK_LIST"]["help_key"], "settings.base.STOCK_LIST")
+        self.assertIn("docs/full-guide.md", fields["STOCK_LIST"]["docs"][0]["href"])
+
+
 class TestSensitiveFieldsUsePasswordControl(unittest.TestCase):
     """Every is_sensitive field must use ui_control='password' to avoid
     leaking secrets in the Web settings page."""
