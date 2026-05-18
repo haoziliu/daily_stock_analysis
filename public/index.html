@@ -1,63 +1,137 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能分析日报</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">    
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
-        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; transition: background 0.2s; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        [v-cloak] { display: none; }
-        .table-container { overflow-x: auto; }
-        .glass-header { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            line-height: 1.5rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .subsection-title {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .field-label {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            font-weight: 700;
+            color: #374151;
+        }
     </style>
 </head>
+
 <body class="bg-gray-100 text-gray-800 font-sans">
-    <div id="app" v-cloak class="max-w-md mx-auto md:max-w-5xl h-screen flex flex-col md:flex-row overflow-hidden">
-        
+    <div id="app" v-cloak
+        class="max-w-md mx-auto md:max-w-5xl h-screen min-h-0 flex flex-col md:flex-row overflow-hidden">
+
         <div v-if="loading" class="flex-1 flex items-center justify-center h-full">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
 
         <template v-else-if="reports.length > 0 || marketReview">
-            <div class="bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 shadow-sm z-10 flex flex-col md:h-full">
-                
-                <div class="p-3 md:p-4 bg-gray-900 text-white flex-shrink-0 flex justify-between items-center md:block">
-                    <h1 class="text-base md:text-lg font-bold">每日智能复盘</h1>
-                    <p class="text-xs text-gray-400 mt-0 md:mt-1">更新于: {{ updateTime }}</p>
+            <div
+                class="bg-white border-b md:border-b-0 md:border-r border-gray-200 md:w-64 flex-shrink-0 shadow-sm z-10 flex flex-col max-h-[34vh] md:max-h-none md:h-full overflow-hidden">
+
+                <div class="p-2 md:p-4 bg-gray-900 text-white flex-shrink-0 flex justify-between items-center md:block">
+                    <h1 class="text-sm md:text-lg font-bold">每日智能复盘</h1>
+                    <p class="hidden sm:block text-xs text-gray-400 mt-0 md:mt-1">更新于: {{ updateTime }}</p>
                 </div>
-                
-                <div class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:flex-1">
-                    
-                    <button v-if="marketReview" @click="selectedIndex = -1"
-                            :class="['p-4 text-left border-b border-gray-100 min-w-[160px] transition-all duration-200 border-l-4', 
-                                     selectedIndex === -1 ? 'bg-blue-50/80 border-blue-600' : 'border-transparent hover:bg-gray-50']">
-                        <div class="flex justify-between items-center w-full">
+
+                <div v-if="marketReview" class="p-2 md:p-3 border-b border-gray-100 bg-blue-50/60 flex-shrink-0">
+                    <button @click="selectedIndex = -1"
+                        :class="['w-full rounded-lg p-2 md:p-3 text-left border transition-all duration-200', 
+                                     selectedIndex === -1 ? 'bg-white border-blue-500 shadow-sm' : 'bg-white/70 border-blue-100 hover:border-blue-300']">
+                        <div class="flex justify-between items-center">
                             <div>
+                                <div class="text-[11px] md:text-xs font-bold text-blue-600 mb-0.5 md:mb-1">市场复盘</div>
                                 <div class="font-bold text-sm text-gray-900">大盘复盘</div>
-                                <div class="text-xs text-gray-500 mt-0.5">{{ marketReview.date }}</div>
+                                <div class="hidden md:block text-xs text-gray-500 mt-0.5">{{ marketReview.date }}</div>
                             </div>
-                            <span class="text-xl font-black ml-3 text-blue-500">🎯</span>
+                            <span class="text-lg md:text-xl font-black ml-3 text-blue-500">🎯</span>
                         </div>
                     </button>
+                </div>
 
-                    <button v-for="(item, index) in reports" :key="item.code" 
-                            @click="selectedIndex = index"
-                            :class="['p-4 text-left border-b border-gray-100 min-w-[160px] transition-all duration-200 border-l-4', 
-                                     selectedIndex === index ? 'bg-blue-50/80 border-blue-600' : 'border-transparent hover:bg-gray-50']">
+                <div v-if="reports.length" class="p-2 md:p-3 border-b border-gray-100 bg-gray-50/80 flex-shrink-0">
+                    <div class="flex items-center justify-between mb-1.5 md:mb-2">
+                        <span class="text-xs font-bold text-gray-500 tracking-wider">个股列表</span>
+                        <span class="text-xs text-gray-400">{{ reports.length }} 只</span>
+                    </div>
+                    <div>
+                        <select v-model="sortMode"
+                            class="w-full text-xs rounded-lg border border-gray-200 bg-white px-2 py-1.5 md:py-2 focus:outline-none focus:ring-2 focus:ring-blue-200">
+                            <option value="score">按综合分</option>
+                            <option value="change">按涨跌幅</option>
+                            <option value="name">按名称</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:flex-1 min-h-[66px] md:min-h-0">
+                    <button v-for="item in visibleReports" :key="item.code"
+                        @click="selectedIndex = reports.findIndex(report => report.code === item.code)"
+                        :class="['p-2.5 md:p-4 text-left border-b border-gray-100 min-w-[128px] md:min-w-[160px] transition-all duration-200 border-l-4', 
+                                     current && current.code === item.code ? 'bg-blue-50/80 border-blue-600' : 'border-transparent hover:bg-gray-50']">
                         <div class="flex justify-between items-center w-full">
-                            <div>
-                                <div class="font-bold text-sm text-gray-900">{{ item.name }}</div>
-                                <div class="text-xs text-gray-500 mt-0.5">{{ item.code }}</div>        
+                            <div class="min-w-0">
+                                <div
+                                    class="font-bold text-xs md:text-sm text-gray-900 truncate max-w-[88px] md:max-w-none">
+                                    {{ item.name }}</div>
+                                <div class="text-xs text-gray-500 mt-0.5">
+                                    {{ item.code }}<span class="hidden md:inline"> · {{ getDisplayAdvice(item) }}</span>
+                                </div>
                             </div>
-                            <span :class="['text-xl font-black ml-3', getScoreColor(getOverallScore(item))]">
+                            <span
+                                :class="['text-lg md:text-xl font-black ml-2 md:ml-3', getScoreColor(getOverallScore(item))]">
                                 {{ getOverallScore(item) }}
                             </span>
                         </div>
@@ -65,283 +139,390 @@
                 </div>
             </div>
 
-            <div v-if="selectedIndex === -1 && marketReview" class="flex-1 bg-white overflow-y-auto p-4 md:p-8">
-                <div class="prose prose-blue max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-img:rounded-xl" v-html="parsedMarkdown"></div>
+            <div v-if="selectedIndex === -1 && marketReview" class="flex-1 min-h-0 bg-white overflow-y-auto p-4 md:p-8">
+                <div class="prose prose-blue max-w-none prose-headings:font-bold prose-a:text-blue-600 prose-img:rounded-xl"
+                    v-html="parsedMarkdown"></div>
             </div>
 
-            <div class="flex-1 bg-gray-50 overflow-y-auto relative" v-else-if="selectedIndex >= 0 && current && current.dashboard">
-                
-                <div class="relative md:sticky md:top-0 flex justify-between items-end p-3 md:px-6 md:py-4 glass-header border-b border-gray-200 shadow-sm z-20">
+            <div class="flex-1 min-h-0 bg-gray-50 overflow-y-auto relative"
+                v-else-if="selectedIndex >= 0 && current && current.dashboard">
+
+                <div
+                    class="relative md:sticky md:top-0 flex justify-between items-end p-3 md:px-6 md:py-4 glass-header border-b border-gray-200 shadow-sm z-20">
                     <div>
                         <h2 class="text-lg font-black text-gray-900">{{ current.name }}</h2>
                         <div class="text-sm text-gray-500 mt-1">{{ current.code }} | 分析日期: {{ current.created_at.split(' ')[0] }}</div>
-                    </div>                   
+                    </div>
 
                     <div class="text-right flex-shrink-0">
-                        <div :class="['text-2xl font-bold', getChangePct(current) >= 0 ? 'text-green-600' : 'text-red-600']">
+                        <div
+                            :class="['text-2xl font-bold', getChangePct(current) >= 0 ? 'text-green-600' : 'text-red-600']">
                             {{ getPrice(current).toFixed(2) }}
                         </div>
-                        <div :class="['text-sm font-bold px-2.5 py-0.5 mt-1 rounded-full inline-block', getChangePct(current) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">
+                        <div
+                            :class="['text-sm font-bold px-2.5 py-0.5 mt-1 rounded-full inline-block', getChangePct(current) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700']">
                             {{ getChangePct(current) > 0 ? '+' : '' }}{{ getChangePct(current).toFixed(2) }}%
                         </div>
                     </div>
                 </div>
 
                 <div class="p-4 md:p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                            <div class="text-xs text-gray-500 mb-1">决策类型</div>
+                            <div :class="['text-base font-bold', getAdviceColor(getDisplayAdvice(current))]">{{
+                                getDecisionLabel(current) }}</div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                            <div class="text-xs text-gray-500 mb-1">置信度</div>
+                            <div class="text-base font-bold text-gray-900">{{ current.confidence_level || '未知' }}</div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                            <div class="text-xs text-gray-500 mb-1">趋势分</div>
+                            <div class="text-base font-bold text-gray-900">{{ getTrendScore(current) }}/100</div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                            <div class="text-xs text-gray-500 mb-1">风险提示</div>
+                            <div class="text-base font-bold text-red-600">{{ getRiskCount(current) }} 条</div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    
-                    <div class="md:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col justify-center">
-                        <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3 flex items-center"><span class="mr-2 text-lg">🤖</span> AI 综合诊断</h3>
-                        <p class="text-sm text-gray-600 leading-relaxed">
-                            {{ current.analysis_summary }}
+
+                        <div
+                            class="md:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col justify-center">
+                            <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
+                                <span class="mr-2 text-lg">🤖</span> AI 综合诊断
+                            </h3>
+                            <p class="text-sm text-gray-600 leading-relaxed">
+                                {{ getPrimarySummary(current) }}
+                            </p>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col items-center justify-center relative"
+                            title="严格遵循“顺势交易”的动态加权计算">
+                            <div class="text-xs text-gray-500 font-bold mb-4 tracking-wider text-center">综合操盘分</div>
+
+                            <div class="relative w-28 h-14 flex-shrink-0 flex flex-col items-center">
+                                <div class="relative w-full h-full">
+                                    <svg viewBox="0 0 100 50" class="w-full h-full overflow-visible">
+                                        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#f1f5f9"
+                                            stroke-width="10" stroke-linecap="round" />
+                                        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none"
+                                            :class="['stroke-current transition-all duration-1000 ease-out', getScoreColor(getOverallScore(current))]"
+                                            stroke-width="10" stroke-linecap="round" stroke-dasharray="125.66"
+                                            :stroke-dashoffset="125.66 * (1 - getOverallScore(current) / 100)" />
+                                    </svg>
+                                    <div
+                                        class="absolute bottom-0 left-0 w-full text-center flex flex-col items-center justify-end translate-y-3">
+                                        <span
+                                            :class="['text-3xl font-black leading-none', getScoreColor(getOverallScore(current))]">
+                                            {{ getOverallScore(current) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- 资金流校准风控 -->
+                    <div v-if="current.dashboard && current.dashboard.decision_stability && current.dashboard.decision_stability.applied"
+                        class="bg-orange-50 rounded-xl shadow-sm border border-orange-200 p-4 mb-6">
+                        <h3 class="card-title flex items-center mb-1" style="color: #7c2d12;">
+                            <span class="mr-2">🛡️</span> 决策风控已介入
+                        </h3>
+                        <p class="text-sm text-orange-800">
+                            {{ current.dashboard.decision_stability.reason }}
                         </p>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col items-center justify-center relative" title="严格遵循“顺势交易”的动态加权计算">
-                        <div class="text-xs text-gray-500 font-bold mb-4 tracking-wider text-center">综合操盘分</div>
-                        
-                        <div class="relative w-28 h-14 flex-shrink-0 flex flex-col items-center">
-                            <div class="relative w-full h-full">
-                                <svg viewBox="0 0 100 50" class="w-full h-full overflow-visible">
-                                    <path d="M 10 50 A 40 40 0 0 1 90 50" 
-                                          fill="none" stroke="#f1f5f9" stroke-width="10" stroke-linecap="round" />
-                                    <path d="M 10 50 A 40 40 0 0 1 90 50" 
-                                          fill="none" 
-                                          :class="['stroke-current transition-all duration-1000 ease-out', getScoreColor(getOverallScore(current))]"
-                                          stroke-width="10" stroke-linecap="round" 
-                                          stroke-dasharray="125.66" 
-                                          :stroke-dashoffset="125.66 * (1 - getOverallScore(current) / 100)" />
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                            <div class="flex items-center text-sm font-medium text-gray-500 mb-2">
+                                <svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4">
+                                    </path>
                                 </svg>
-                                <div class="absolute bottom-0 left-0 w-full text-center flex flex-col items-center justify-end translate-y-3">
-                                    <span :class="['text-3xl font-black leading-none', getScoreColor(getOverallScore(current))]">
-                                        {{ getOverallScore(current) }}
-                                    </span>
+                                操作建议
+                            </div>
+                            <div :class="['text-xl font-bold', getAdviceColor(getDisplayAdvice(current))]">
+                                {{ getDisplayAdvice(current) }}
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                            <div class="flex items-center text-sm font-medium text-gray-500 mb-2">
+                                <svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                                趋势预测
+                            </div>
+                            <div class="text-xl font-bold text-gray-900">
+                                {{ current.trend_prediction }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                        <p class="text-gray-900 font-bold text-base leading-relaxed mb-4 border-l-4 border-blue-500 pl-3">
+                            {{ current.dashboard.core_conclusion.one_sentence }}
+                        </p>
+                        <div class="flex items-center text-sm mb-4">
+                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold mr-2">时效性</span>
+                            <span class="text-gray-800 font-medium">{{
+                                current.dashboard.core_conclusion.time_sensitivity }}</span>
+                            <span
+                                class="ml-4 bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold mr-2">信号</span>
+                            <span class="text-gray-800 font-medium">{{ current.dashboard.core_conclusion.signal_type
+                                }}</span>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 space-y-3 border border-gray-100">
+                            <div class="flex items-start">
+                                <span class="text-lg mr-2 mt-0.5 w-6 shrink-0 text-center">🔭</span>
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 block leading-tight mb-1">空仓者</span>
+                                    <span class="text-sm text-gray-600 leading-snug">{{
+                                        current.dashboard.core_conclusion.position_advice.no_position }}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="text-lg mr-2 mt-0.5 w-6 shrink-0 text-center">💼</span>
+                                <div>
+                                    <span class="text-sm font-bold text-gray-800 block leading-tight mb-1">持仓者</span>
+                                    <span class="text-sm text-gray-600 leading-snug">{{
+                                        current.dashboard.core_conclusion.position_advice.has_position }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                </div>
 
-                <!-- 资金流校准风控 -->
-                <div v-if="current.dashboard && current.dashboard.decision_stability && current.dashboard.decision_stability.applied" class="bg-orange-50 rounded-xl shadow-sm border border-orange-200 p-4 mb-6">
-                    <h3 class="font-bold text-orange-900 flex items-center mb-1">
-                        <span class="mr-2">🛡️</span> 决策风控已介入
-                    </h3>
-                    <p class="text-sm text-orange-800">
-                        {{ current.dashboard.decision_stability.reason }}
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                        <div class="flex items-center text-sm font-medium text-gray-500 mb-2">
-                            <svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                            操作建议
-                        </div>
-                        <div :class="['text-xl font-bold', getAdviceColor(current.operation_advice)]">
-                            {{ current.operation_advice }}
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6"
+                        v-if="current.short_term_outlook || current.medium_term_outlook">
+                        <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
+                            <span class="mr-2">🔮</span> 后市展望
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div v-if="current.short_term_outlook"
+                                class="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                <h4 class="subsection-title mb-1">短期展望</h4>
+                                <p class="text-blue-800 leading-relaxed">{{ current.short_term_outlook }}</p>
+                            </div>
+                            <div v-if="current.medium_term_outlook"
+                                class="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
+                                <h4 class="subsection-title mb-1">中期展望</h4>
+                                <p class="text-purple-800 leading-relaxed">{{ current.medium_term_outlook }}</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                        <div class="flex items-center text-sm font-medium text-gray-500 mb-2">
-                            <svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                            趋势预测
-                        </div>
-                        <div class="text-xl font-bold text-gray-900">
-                            {{ current.trend_prediction }}
-                        </div>
-                    </div>
-                </div>
 
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                    <p class="text-gray-900 font-bold text-md leading-relaxed mb-4 border-l-4 border-blue-500 pl-3">
-                        {{ current.dashboard.core_conclusion.one_sentence }}
-                    </p>
-                    <div class="flex items-center text-sm mb-4">
-                        <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold mr-2">时效性</span>
-                        <span class="text-gray-800 font-medium">{{ current.dashboard.core_conclusion.time_sensitivity }}</span>
-                        <span class="ml-4 bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold mr-2">信号</span>
-                        <span class="text-gray-800 font-medium">{{ current.dashboard.core_conclusion.signal_type }}</span>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6"
+                        v-if="current.trend_analysis || current.technical_analysis">
+                        <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
+                            <span class="mr-2">🔍</span> 深度技术解析
+                        </h3>
+                        <div class="space-y-3 text-sm">
+                            <div v-if="current.trend_analysis"
+                                class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
+                                <span class="field-label w-24 shrink-0 mb-1 md:mb-0">趋势分析:</span>
+                                <span class="text-gray-600 leading-relaxed">{{ current.trend_analysis }}</span>
+                            </div>
+                            <div v-if="current.technical_analysis"
+                                class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
+                                <span class="field-label w-24 shrink-0 mb-1 md:mb-0">技术面:</span>
+                                <span class="text-gray-600 leading-relaxed">{{ current.technical_analysis }}</span>
+                            </div>
+                            <div v-if="current.volume_analysis"
+                                class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
+                                <span class="field-label w-24 shrink-0 mb-1 md:mb-0">量价分析:</span>
+                                <span class="text-gray-600 leading-relaxed">{{ current.volume_analysis }}</span>
+                            </div>
+                            <div v-if="current.pattern_analysis" class="flex flex-col md:flex-row md:items-start">
+                                <span class="field-label w-24 shrink-0 mb-1 md:mb-0">K线形态:</span>
+                                <span class="text-gray-600 leading-relaxed">{{ current.pattern_analysis }}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-gray-50 rounded-lg p-4 space-y-3 border border-gray-100">
-                        <div class="flex items-start">
-                            <span class="text-lg mr-2 mt-0.5 w-6 shrink-0 text-center">🔭</span>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                        <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
+                            <span class="mr-2">📊</span> 数据透视
+                        </h3>
+
+                        <div class="text-sm text-gray-700 mb-4 bg-gray-50 p-3 rounded-lg">
+                            <strong>均线排列:</strong> {{ current.dashboard.data_perspective.trend_status.ma_alignment }}
+                            <span class="mx-2 text-gray-300">|</span>
+                            <strong>多头排列:</strong> {{ current.dashboard.data_perspective.trend_status.is_bullish ? '✅ 是'
+                            : '❌ 否' }}
+                            <span class="mx-2 text-gray-300">|</span>
+                            <strong>趋势强度:</strong> {{ current.dashboard.data_perspective.trend_status.trend_score }}/100
+                        </div>
+
+                        <div class="table-container mb-4 rounded-lg border border-gray-200">
+                            <table class="min-w-full text-sm text-left">
+                                <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+                                    <tr>
+                                        <th class="py-2 px-3">价格指标</th>
+                                        <th class="py-2 px-3">数值</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 text-gray-800">
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">当前价</td>
+                                        <td class="py-2 px-3">{{
+                                            current.dashboard.data_perspective.price_position.current_price }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">MA5 / 10 / 20</td>
+                                        <td class="py-2 px-3">{{ current.dashboard.data_perspective.price_position.ma5
+                                            }} / {{ current.dashboard.data_perspective.price_position.ma10 }} / {{
+                                            current.dashboard.data_perspective.price_position.ma20 }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">乖离率(MA5)</td>
+                                        <td class="py-2 px-3 font-bold text-gray-700">
+                                            {{ current.dashboard.data_perspective.price_position.bias_ma5 }}% ({{
+                                            current.dashboard.data_perspective.price_position.bias_status }})
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">支撑位</td>
+                                        <td class="py-2 px-3">{{
+                                            current.dashboard.data_perspective.price_position.support_level }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-3 font-medium">压力位</td>
+                                        <td class="py-2 px-3">{{
+                                            current.dashboard.data_perspective.price_position.resistance_level }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="space-y-3 text-sm">
                             <div>
-                                <span class="text-sm font-bold text-gray-800 block leading-tight mb-1">空仓者</span>
-                                <span class="text-sm text-gray-600 leading-snug">{{ current.dashboard.core_conclusion.position_advice.no_position }}</span>
+                                <span class="field-label">量能:</span>
+                                <span class="text-gray-600">量比 {{
+                                    current.dashboard.data_perspective.volume_analysis.volume_ratio }} ({{
+                                    current.dashboard.data_perspective.volume_analysis.volume_status }}) | 换手率 {{
+                                    current.dashboard.data_perspective.volume_analysis.turnover_rate }}%</span>
+                                <div class="text-gray-500 italic mt-1 flex items-start"><span class="mr-1">💡</span> {{
+                                    current.dashboard.data_perspective.volume_analysis.volume_meaning }}</div>
                             </div>
-                        </div>
-                        <div class="flex items-start">
-                            <span class="text-lg mr-2 mt-0.5 w-6 shrink-0 text-center">💼</span>
                             <div>
-                                <span class="text-sm font-bold text-gray-800 block leading-tight mb-1">持仓者</span>
-                                <span class="text-sm text-gray-600 leading-snug">{{ current.dashboard.core_conclusion.position_advice.has_position }}</span>
+                                <span class="field-label">筹码:</span>
+                                <span class="text-gray-600">获利比例 {{
+                                    current.dashboard.data_perspective.chip_structure.profit_ratio }}% | 平均成本 {{
+                                    current.dashboard.data_perspective.chip_structure.avg_cost }} | 集中度 {{
+                                    current.dashboard.data_perspective.chip_structure.concentration }}</span>
+                                <div
+                                    class="text-gray-600 font-medium mt-1 text-xs px-2 py-1 bg-gray-100 inline-block rounded border border-gray-200">
+                                    {{ current.dashboard.data_perspective.chip_structure.chip_health }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+                        <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
+                            <span class="mr-2">📰</span> 情报面
+                        </h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-start">
+                                <span class="field-label w-20 shrink-0">舆情情绪:</span>
+                                <span class="text-gray-600">{{ current.dashboard.intelligence.sentiment_summary
+                                    }}</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="field-label w-20 shrink-0">业绩预期:</span>
+                                <span class="text-gray-600">{{ current.dashboard.intelligence.earnings_outlook }}</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="field-label w-20 shrink-0">最新动态:</span>
+                                <span class="text-gray-600">{{ current.dashboard.intelligence.latest_news }}</span>
+                            </div>
+                            <div class="pt-2"
+                                v-if="current.dashboard.intelligence.positive_catalysts && current.dashboard.intelligence.positive_catalysts.length > 0">
+                                <span class="field-label block mb-1" style="color: #15803d;">✨ 利好催化:</span>
+                                <ul class="list-disc list-inside text-gray-600 pl-1">
+                                    <li v-for="(item, idx) in current.dashboard.intelligence.positive_catalysts"
+                                        :key="idx">{{ item }}</li>
+                                </ul>
+                            </div>
+                            <div class="pt-2"
+                                v-if="current.dashboard.intelligence.risk_alerts && current.dashboard.intelligence.risk_alerts.length > 0">
+                                <span class="field-label block mb-1" style="color: #b91c1c;">🚨 风险警报:</span>
+                                <ul class="space-y-1 text-red-700 list-disc list-inside">
+                                    <li v-for="(risk, idx) in current.dashboard.intelligence.risk_alerts" :key="idx">{{
+                                        risk }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-8">
+                        <h3 class="card-title border-b border-gray-100 pb-2 mb-4 flex items-center">
+                            <span class="mr-2">🎯</span> 操盘计划
+                        </h3>
+                        <div class="space-y-5">
+                            <div>
+                                <h4 class="subsection-title border-l-4 border-blue-500 pl-2 mb-3">狙击点位</h4>
+                                <div class="grid grid-cols-2 gap-3 mb-4">
+                                    <div class="bg-gray-50 p-2 rounded text-center border border-gray-100">
+                                        <div class="text-xs text-gray-500">理想买入</div>
+                                        <div class="font-bold text-gray-900">{{
+                                            current.dashboard.battle_plan.sniper_points.ideal_buy.split(' ')[0] }}</div>
+                                    </div>
+                                    <div class="bg-gray-50 p-2 rounded text-center border border-gray-100">
+                                        <div class="text-xs text-gray-500">次优买入</div>
+                                        <div class="font-bold text-gray-900">{{
+                                            current.dashboard.battle_plan.sniper_points.secondary_buy.split(' ')[0] }}
+                                        </div>
+                                    </div>
+                                    <div class="bg-green-50 p-2 rounded text-center border border-green-100">
+                                        <div class="text-xs text-green-600">目标止盈</div>
+                                        <div class="font-bold text-green-700">{{
+                                            current.dashboard.battle_plan.sniper_points.take_profit.split(' ')[0] }}
+                                        </div>
+                                    </div>
+                                    <div class="bg-red-50 p-2 rounded text-center border border-red-100">
+                                        <div class="text-xs text-red-600">严格止损</div>
+                                        <div class="font-bold text-red-700">{{
+                                            current.dashboard.battle_plan.sniper_points.stop_loss.split(' ')[0] }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-sm">
+                                <h4 class="subsection-title border-l-4 border-blue-500 pl-2 mb-3">仓位与执行</h4>
+                                <div class="mb-2">
+                                    <span class="field-label">建议仓位:</span>
+                                    <span class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded">{{
+                                        current.dashboard.battle_plan.position_strategy.suggested_position }}</span>
+                                </div>
+                                <div class="text-gray-600 leading-snug">{{
+                                    current.dashboard.battle_plan.position_strategy.entry_plan }}</div>
+                                <div v-if="current.dashboard.battle_plan.position_strategy.risk_control"
+                                    class="mt-3 bg-red-50 border border-red-100 rounded-lg p-3">
+                                    <span class="field-label block mb-1" style="color: #b91c1c;">风险控制</span>
+                                    <span class="text-red-700 leading-snug">{{
+                                        current.dashboard.battle_plan.position_strategy.risk_control }}</span>
+                                </div>
+                            </div>
+                            <div
+                                v-if="current.dashboard.battle_plan.action_checklist && current.dashboard.battle_plan.action_checklist.length > 0">
+                                <h4 class="subsection-title border-l-4 border-blue-500 pl-2 mb-3">行动清单</h4>
+                                <ul class="space-y-1 text-sm text-gray-700">
+                                    <li v-for="(item, idx) in current.dashboard.battle_plan.action_checklist"
+                                        :key="idx">{{ item }}</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6" v-if="current.short_term_outlook || current.medium_term_outlook">
-                    <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3 flex items-center">
-                        <span class="mr-2">🔮</span> 后市展望
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div v-if="current.short_term_outlook" class="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-                            <h4 class="font-bold text-blue-900 mb-1">短期展望</h4>
-                            <p class="text-blue-800 leading-relaxed">{{ current.short_term_outlook }}</p>
-                        </div>
-                        <div v-if="current.medium_term_outlook" class="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
-                            <h4 class="font-bold text-purple-900 mb-1">中期展望</h4>
-                            <p class="text-purple-800 leading-relaxed">{{ current.medium_term_outlook }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6" v-if="current.trend_analysis || current.technical_analysis">
-                    <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3 flex items-center">
-                        <span class="mr-2">🔍</span> 深度技术解析
-                    </h3>
-                    <div class="space-y-3 text-sm">
-                        <div v-if="current.trend_analysis" class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
-                            <span class="font-bold text-gray-700 w-24 shrink-0 mb-1 md:mb-0">趋势分析:</span>
-                            <span class="text-gray-600 leading-relaxed">{{ current.trend_analysis }}</span>
-                        </div>
-                        <div v-if="current.technical_analysis" class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
-                            <span class="font-bold text-gray-700 w-24 shrink-0 mb-1 md:mb-0">技术面:</span>
-                            <span class="text-gray-600 leading-relaxed">{{ current.technical_analysis }}</span>
-                        </div>
-                        <div v-if="current.volume_analysis" class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
-                            <span class="font-bold text-gray-700 w-24 shrink-0 mb-1 md:mb-0">量价分析:</span>
-                            <span class="text-gray-600 leading-relaxed">{{ current.volume_analysis }}</span>
-                        </div>
-                        <div v-if="current.pattern_analysis" class="flex flex-col md:flex-row md:items-start">
-                            <span class="font-bold text-gray-700 w-24 shrink-0 mb-1 md:mb-0">K线形态:</span>
-                            <span class="text-gray-600 leading-relaxed">{{ current.pattern_analysis }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                    <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3 flex items-center">
-                        <span class="mr-2">📰</span> 重要信息速览
-                    </h3>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex items-start">
-                            <span class="font-bold text-gray-700 w-20 shrink-0">舆情情绪:</span>
-                            <span class="text-gray-600">{{ current.dashboard.intelligence.sentiment_summary }}</span>
-                        </div>
-                        <div class="flex items-start">
-                            <span class="font-bold text-gray-700 w-20 shrink-0">业绩预期:</span>
-                            <span class="text-gray-600">{{ current.dashboard.intelligence.earnings_outlook }}</span>
-                        </div>
-                        <div class="flex items-start">
-                            <span class="font-bold text-gray-700 w-20 shrink-0">最新动态:</span>
-                            <span class="text-gray-600">{{ current.dashboard.intelligence.latest_news }}</span>
-                        </div>
-                        <div class="pt-2" v-if="current.dashboard.intelligence.positive_catalysts && current.dashboard.intelligence.positive_catalysts.length > 0">
-                            <span class="font-bold text-green-700 block mb-1">✨ 利好催化:</span>
-                            <ul class="list-disc list-inside text-gray-600 pl-1">
-                                <li v-for="(item, idx) in current.dashboard.intelligence.positive_catalysts" :key="idx">{{ item }}</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-                    <h3 class="font-bold text-gray-900 border-b border-gray-100 pb-2 mb-3 flex items-center">
-                        <span class="mr-2">📊</span> 数据透视
-                    </h3>
-                    
-                    <div class="text-sm text-gray-700 mb-4 bg-gray-50 p-3 rounded-lg">
-                        <strong>均线排列:</strong> {{ current.dashboard.data_perspective.trend_status.ma_alignment }} 
-                        <span class="mx-2 text-gray-300">|</span> 
-                        <strong>多头排列:</strong> {{ current.dashboard.data_perspective.trend_status.is_bullish ? '✅ 是' : '❌ 否' }}
-                        <span class="mx-2 text-gray-300">|</span> 
-                        <strong>趋势强度:</strong> {{ current.dashboard.data_perspective.trend_status.trend_score }}/100
-                    </div>
-
-                    <div class="table-container mb-4 rounded-lg border border-gray-200">
-                        <table class="min-w-full text-sm text-left">
-                            <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
-                                <tr>
-                                    <th class="py-2 px-3">价格指标</th>
-                                    <th class="py-2 px-3">数值</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 text-gray-800">
-                                <tr><td class="py-2 px-3 font-medium">当前价</td><td class="py-2 px-3">{{ current.dashboard.data_perspective.price_position.current_price }}</td></tr>
-                                <tr><td class="py-2 px-3 font-medium">MA5 / 10 / 20</td><td class="py-2 px-3">{{ current.dashboard.data_perspective.price_position.ma5 }} / {{ current.dashboard.data_perspective.price_position.ma10 }} / {{ current.dashboard.data_perspective.price_position.ma20 }}</td></tr>
-                                <tr>
-                                    <td class="py-2 px-3 font-medium">乖离率(MA5)</td>
-                                    <td class="py-2 px-3 font-bold text-gray-700">
-                                        {{ current.dashboard.data_perspective.price_position.bias_ma5 }}% ({{ current.dashboard.data_perspective.price_position.bias_status }})
-                                    </td>
-                                </tr>
-                                <tr><td class="py-2 px-3 font-medium">支撑位</td><td class="py-2 px-3">{{ current.dashboard.data_perspective.price_position.support_level }}</td></tr>
-                                <tr><td class="py-2 px-3 font-medium">压力位</td><td class="py-2 px-3">{{ current.dashboard.data_perspective.price_position.resistance_level }}</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="space-y-3 text-sm">
-                        <div>
-                            <span class="font-bold text-gray-700">量能:</span> 
-                            <span class="text-gray-600">量比 {{ current.dashboard.data_perspective.volume_analysis.volume_ratio }} ({{ current.dashboard.data_perspective.volume_analysis.volume_status }}) | 换手率 {{ current.dashboard.data_perspective.volume_analysis.turnover_rate }}%</span>
-                            <div class="text-gray-500 italic mt-1 flex items-start"><span class="mr-1">💡</span> {{ current.dashboard.data_perspective.volume_analysis.volume_meaning }}</div>
-                        </div>
-                        <div>
-                            <span class="font-bold text-gray-700">筹码:</span> 
-                            <span class="text-gray-600">获利比例 {{ current.dashboard.data_perspective.chip_structure.profit_ratio }}% | 平均成本 {{ current.dashboard.data_perspective.chip_structure.avg_cost }} | 集中度 {{ current.dashboard.data_perspective.chip_structure.concentration }}</span>
-                            <div class="text-gray-600 font-medium mt-1 text-xs px-2 py-1 bg-gray-100 inline-block rounded border border-gray-200">{{ current.dashboard.data_perspective.chip_structure.chip_health }}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex flex-col gap-4 mb-8">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                        <h3 class="font-bold text-gray-900 border-l-4 border-blue-500 pl-2 mb-4">🎯 狙击点位</h3>
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <div class="bg-gray-50 p-2 rounded text-center border border-gray-100">
-                                <div class="text-xs text-gray-500">理想买入</div>
-                                <div class="font-bold text-gray-900">{{ current.dashboard.battle_plan.sniper_points.ideal_buy.split(' ')[0] }}</div>
-                            </div>
-                            <div class="bg-gray-50 p-2 rounded text-center border border-gray-100">
-                                <div class="text-xs text-gray-500">次优买入</div>
-                                <div class="font-bold text-gray-900">{{ current.dashboard.battle_plan.sniper_points.secondary_buy.split(' ')[0] }}</div>
-                            </div>
-                            <div class="bg-green-50 p-2 rounded text-center border border-green-100">
-                                <div class="text-xs text-green-600">目标止盈</div>
-                                <div class="font-bold text-green-700">{{ current.dashboard.battle_plan.sniper_points.take_profit.split(' ')[0] }}</div>
-                            </div>
-                            <div class="bg-red-50 p-2 rounded text-center border border-red-100">
-                                <div class="text-xs text-red-600">严格止损</div>
-                                <div class="font-bold text-red-700">{{ current.dashboard.battle_plan.sniper_points.stop_loss.split(' ')[0] }}</div>
-                            </div>
-                        </div>
-                        <div class="text-sm">
-                            <div class="mb-2"><span class="font-bold text-gray-700">建议仓位:</span> <span class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded">{{ current.dashboard.battle_plan.position_strategy.suggested_position }}</span></div>
-                            <div class="text-gray-600 leading-snug">{{ current.dashboard.battle_plan.position_strategy.entry_plan }}</div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                        <h3 class="font-bold text-gray-900 border-l-4 border-blue-500 pl-2 mb-3">✅ 检查清单</h3>
-                        <ul class="space-y-1 text-sm text-gray-700 mb-5">
-                            <li v-for="(item, idx) in current.dashboard.battle_plan.action_checklist" :key="idx">{{ item }}</li>
-                        </ul>
-                        
-                        <h3 class="font-bold text-red-600 border-l-4 border-red-500 pl-2 mb-2">🚨 风险警报</h3>
-                        <ul class="space-y-1 text-sm text-gray-700 list-disc list-inside">
-                            <li v-for="(risk, idx) in current.dashboard.intelligence.risk_alerts" :key="idx" class="text-red-700">
-                                {{ risk }}
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
         </template>
-        
+
         <div v-else class="flex-1 flex items-center justify-center min-h-screen text-gray-500">
             暂无分析数据
         </div>
@@ -357,9 +538,18 @@
                 const marketReview = ref(null)
                 const selectedIndex = ref(0)
                 const loading = ref(true)
+                const sortMode = ref('score')
 
                 const current = computed(() => {
                     return (selectedIndex.value >= 0 && reports.value.length > 0) ? reports.value[selectedIndex.value] : null
+                })
+
+                const visibleReports = computed(() => {
+                    return [...reports.value].sort((a, b) => {
+                        if (sortMode.value === 'change') return getChangePct(b) - getChangePct(a)
+                        if (sortMode.value === 'name') return String(a.name || '').localeCompare(String(b.name || ''), 'zh-CN')
+                        return getOverallScore(b) - getOverallScore(a)
+                    })
                 })
 
                 const parsedMarkdown = computed(() => {
@@ -369,22 +559,22 @@
                     return ''
                 })
 
-// ---- 核心计算逻辑 ----
-                
+                // ---- 核心计算逻辑 ----
+
                 // 🎯 升级版：严格遵循“顺势交易”的动态加权计算
                 const getOverallScore = (item) => {
                     if (!item) return 0;
-                    const trend = item.dashboard?.data_perspective?.trend_status?.trend_score || item.sentiment_score;
-                    const sentiment = item.sentiment_score;
+                    const trend = getTrendScore(item);
+                    const sentiment = item.dashboard?.sentiment_score ?? item.sentiment_score ?? 50;
 
                     // 1. 空头排列（破位下跌）：趋势拥有一票否决权，极度压缩情绪权重
                     if (trend <= 30) {
                         return Math.round(trend * 0.8 + sentiment * 0.2);
-                    } 
+                    }
                     // 2. 多头排列（主升浪）：趋势确认安全，利好情绪起乘数放大作用
                     else if (trend >= 60) {
                         return Math.round(trend * 0.5 + sentiment * 0.5);
-                    } 
+                    }
                     // 3. 震荡修复（筑底/横盘）：技术面防守为主，情绪面辅助
                     else {
                         return Math.round(trend * 0.7 + sentiment * 0.3);
@@ -409,14 +599,37 @@
                     return 'text-gray-900';
                 }
 
+                const getDisplayAdvice = (item) => {
+                    return item?.dashboard?.operation_advice || item?.operation_advice || '暂无建议'
+                }
+
+                const getDecisionLabel = (item) => {
+                    const type = item?.dashboard?.decision_type || item?.decision_type || ''
+                    const labels = { buy: '买入', hold: '持有/观望', sell: '卖出', reduce: '减仓' }
+                    return labels[type] || getDisplayAdvice(item)
+                }
+
+                const getTrendScore = (item) => {
+                    return Number(item?.dashboard?.data_perspective?.trend_status?.trend_score ?? item?.sentiment_score ?? 0)
+                }
+
+                const getRiskCount = (item) => {
+                    return item?.dashboard?.intelligence?.risk_alerts?.length || 0
+                }
+
+                const getPrimarySummary = (item) => {
+                    return item?.analysis_summary || '暂无摘要'
+                }
+
                 const getPrice = (item) => {
-                    if (item.market_snapshot && item.market_snapshot.price) return parseFloat(item.market_snapshot.price);
+                    if (item.market_snapshot && item.market_snapshot.price !== null && item.market_snapshot.price !== undefined) return parseFloat(item.market_snapshot.price);
                     if (item.current_price !== null && item.current_price !== undefined) return item.current_price;
+                    if (item.dashboard?.data_perspective?.price_position?.current_price !== null && item.dashboard?.data_perspective?.price_position?.current_price !== undefined) return parseFloat(item.dashboard.data_perspective.price_position.current_price);
                     return item.realtime_quote?.price || 0;
                 }
 
                 const getChangePct = (item) => {
-                    if (item.market_snapshot && item.market_snapshot.pct_chg) return parseFloat(item.market_snapshot.pct_chg);
+                    if (item.market_snapshot && item.market_snapshot.pct_chg !== null && item.market_snapshot.pct_chg !== undefined) return parseFloat(item.market_snapshot.pct_chg);
                     if (item.change_pct !== null && item.change_pct !== undefined) return item.change_pct;
                     return item.realtime_quote?.change_pct || 0;
                 }
@@ -426,7 +639,7 @@
                         const response = await fetch('./daily_report.json?t=' + new Date().getTime())
                         const data = await response.json()
                         let allReports = data.reports || []
-                        
+
                         // 尝试从报告列表中提取大盘复盘
                         const marketReport = allReports.find(r => r.code === 'MARKET' || r.report_type === 'market_review')
                         if (marketReport) {
@@ -442,16 +655,16 @@
                         } else {
                             selectedIndex.value = 0
                         }
-                        
+
                         // 过滤掉大盘复盘和没有 dashboard 的无效数据 (防备旧缓存或格式变更)
                         let fetchedReports = allReports.filter(r => r.code !== 'MARKET' && r.report_type !== 'market_review' && r.dashboard)
-                        
+
                         // 🎯 修改排序逻辑：按全新的“综合评分”降序排列
                         fetchedReports.sort((a, b) => getOverallScore(b) - getOverallScore(a))
-                        
+
                         reports.value = fetchedReports
                         updateTime.value = data.update_time || ''
-                        
+
                     } catch (error) {
                         console.error('获取数据失败:', error)
                         alert('获取最新报告失败，请检查数据文件。')
@@ -460,12 +673,16 @@
                     }
                 })
 
-                return { 
+                return {
                     reports, updateTime, marketReview, selectedIndex, current, loading, parsedMarkdown,
-                    getScoreColor, getAdviceColor, getOverallScore, getPrice, getChangePct
+                    sortMode, visibleReports,
+                    getScoreColor, getAdviceColor, getOverallScore, getPrice, getChangePct,
+                    getDisplayAdvice, getDecisionLabel, getTrendScore, getRiskCount,
+                    getPrimarySummary
                 }
             }
         }).mount('#app')
     </script>
 </body>
+
 </html>
