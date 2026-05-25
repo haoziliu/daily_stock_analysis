@@ -764,6 +764,27 @@ def stabilize_decision_with_structure(
 
     try:
         language = normalize_report_language(getattr(result, "report_language", "zh"))
+
+        # === LOCAL PATCH BEGIN ===
+        # Bypass stability calibration for non-CN (US/HK) stocks.
+        # Track upstream: If upstream natively supports non-CN stability calibration or resolves capital flow downgrades, this bypass can be removed.
+        from src.market_context import detect_market
+        if detect_market(result.code) != "cn":
+            dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
+            result.dashboard = dashboard
+            dashboard["decision_stability"] = {
+                "applied": False,
+                "reason": "非 A 股市场暂不启用资金流及价格区间风控校准" if language == "zh" else "Calibration not enabled for non-A-share markets",
+                "capital_flow_status": "not_supported",
+                "capital_flow_bias": "unavailable",
+                "current_price": None,
+                "support": None,
+                "resistance": None,
+            }
+            _sync_stability_dashboard_fields(result)
+            return
+        # === LOCAL PATCH END ===
+
         dashboard = result.dashboard if isinstance(result.dashboard, dict) else {}
         data_perspective = dashboard.get("data_perspective") if isinstance(dashboard, dict) else {}
         if not isinstance(data_perspective, dict):
