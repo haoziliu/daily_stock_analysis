@@ -228,8 +228,11 @@ class YfinanceFetcher(BaseFetcher):
         df = df.reset_index()
 
         # 列名映射（yfinance 使用首字母大写）
+        # yfinance 0.2.54+ 将日线数据的索引从 'Date' 改名为 'Datetime'（带时区 timestamp）
+        # 同时保留旧名 'Date' 的映射以兼容旧版本
         column_mapping = {
             'Date': 'date',
+            'Datetime': 'date',   # yfinance >=0.2.54 新索引名
             'Open': 'open',
             'High': 'high',
             'Low': 'low',
