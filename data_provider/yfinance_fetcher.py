@@ -224,15 +224,15 @@ class YfinanceFetcher(BaseFetcher):
             # 取第一级列名（Price level: Close, High, Low, etc.）
             df.columns = df.columns.get_level_values(0)
 
-        # 重置索引，将日期从索引变为列
-        df = df.reset_index()
+        # 直接从索引中提取日期，完全免受 pandas/yfinance 索引名（Date/Datetime/None）变更的影响
+        if not isinstance(df.index, pd.RangeIndex):
+            df['date'] = df.index
+
+        # 重置为 RangeIndex
+        df = df.reset_index(drop=True)
 
         # 列名映射（yfinance 使用首字母大写）
-        # yfinance 0.2.54+ 将日线数据的索引从 'Date' 改名为 'Datetime'（带时区 timestamp）
-        # 同时保留旧名 'Date' 的映射以兼容旧版本
         column_mapping = {
-            'Date': 'date',
-            'Datetime': 'date',   # yfinance >=0.2.54 新索引名
             'Open': 'open',
             'High': 'high',
             'Low': 'low',
