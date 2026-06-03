@@ -130,7 +130,8 @@ export type AnalysisContextPackBlockStatus =
   | 'fallback'
   | 'stale'
   | 'estimated'
-  | 'partial';
+  | 'partial'
+  | 'fetch_failed';
 
 export interface AnalysisContextPackOverviewSubject {
   code: string;
@@ -155,11 +156,21 @@ export interface AnalysisContextPackOverviewCounts {
   stale: number;
   estimated: number;
   partial: number;
+  fetchFailed: number;
 }
 
 export interface AnalysisContextPackOverviewMetadata {
   triggerSource?: string | null;
   newsResultCount?: number | null;
+}
+
+export type AnalysisContextPackDataQualityLevel = 'good' | 'usable' | 'limited' | 'poor';
+
+export interface AnalysisContextPackOverviewDataQuality {
+  overallScore?: number | null;
+  level?: AnalysisContextPackDataQualityLevel | null;
+  blockScores: Record<string, number>;
+  limitations: string[];
 }
 
 export interface AnalysisContextPackOverview {
@@ -168,6 +179,7 @@ export interface AnalysisContextPackOverview {
   subject: AnalysisContextPackOverviewSubject;
   blocks: AnalysisContextPackOverviewBlock[];
   counts: AnalysisContextPackOverviewCounts;
+  dataQuality?: AnalysisContextPackOverviewDataQuality | null;
   warnings: string[];
   metadata: AnalysisContextPackOverviewMetadata;
 }
@@ -378,6 +390,25 @@ export interface HistoryFilters {
 export interface HistoryPagination {
   page: number;
   limit: number;
+}
+
+// ============ Stock Bar Types ============
+
+export interface StockBarItem {
+  id: number;
+  stockCode: string;
+  stockName?: string;
+  reportType?: string;
+  sentimentScore?: number;
+  operationAdvice?: string;
+  analysisCount: number;
+  lastAnalysisTime?: string;
+  modelUsed?: string;
+}
+
+export interface StockBarResponse {
+  total: number;
+  items: StockBarItem[];
 }
 
 // ============ Error Types ============

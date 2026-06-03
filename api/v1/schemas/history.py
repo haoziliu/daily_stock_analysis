@@ -182,6 +182,7 @@ class AnalysisContextPackOverviewBlock(BaseModel):
         "stale",
         "estimated",
         "partial",
+        "fetch_failed",
     ] = Field(..., description="数据块质量状态")
     source: Optional[str] = Field(None, description="数据来源")
     warnings: List[str] = Field(default_factory=list, description="数据块告警码")
@@ -198,6 +199,7 @@ class AnalysisContextPackOverviewCounts(BaseModel):
     stale: int = 0
     estimated: int = 0
     partial: int = 0
+    fetch_failed: int = 0
 
 
 class AnalysisContextPackOverviewMetadata(BaseModel):
@@ -205,6 +207,18 @@ class AnalysisContextPackOverviewMetadata(BaseModel):
 
     trigger_source: Optional[str] = Field(None, description="触发来源")
     news_result_count: Optional[int] = Field(None, description="新闻结果数量")
+
+
+class AnalysisContextPackOverviewDataQuality(BaseModel):
+    """AnalysisContextPack 可见摘要数据质量评分"""
+
+    overall_score: Optional[int] = Field(None, ge=0, le=100, description="输入数据质量总分")
+    level: Optional[Literal["good", "usable", "limited", "poor"]] = Field(
+        None,
+        description="输入数据质量等级",
+    )
+    block_scores: Dict[str, int] = Field(default_factory=dict, description="固定数据块质量分")
+    limitations: List[str] = Field(default_factory=list, description="低敏数据限制说明")
 
 
 class AnalysisContextPackOverview(BaseModel):
@@ -215,6 +229,10 @@ class AnalysisContextPackOverview(BaseModel):
     subject: AnalysisContextPackOverviewSubject
     blocks: List[AnalysisContextPackOverviewBlock] = Field(default_factory=list)
     counts: AnalysisContextPackOverviewCounts
+    data_quality: Optional[AnalysisContextPackOverviewDataQuality] = Field(
+        None,
+        description="本次分析输入数据质量低敏摘要",
+    )
     warnings: List[str] = Field(default_factory=list, description="顶层数据质量提醒")
     metadata: AnalysisContextPackOverviewMetadata = Field(default_factory=AnalysisContextPackOverviewMetadata)
 
@@ -281,6 +299,59 @@ class MarkdownReportResponse(BaseModel):
             "content": "# 📊 贵州茅台 (600519) 分析报告\n\n> 分析日期：**2024-01-01**\n\n..."
         }
     })
+
+
+class StockBarItem(BaseModel):
+    """个股栏条目（去重后的股票维度摘要）"""
+
+    id: int = Field(..., description="该股最新一次分析的历史记录主键 ID")
+    stock_code: str = Field(..., description="股票代码")
+    stock_name: Optional[str] = Field(None, description="股票名称")
+    report_type: Optional[str] = Field(None, description="报告类型")
+    sentiment_score: Optional[int] = Field(
+        None,
+        description="最新情绪评分",
+    )
+    operation_advice: Optional[str] = Field(None, description="最新操作建议")
+    analysis_count: int = Field(..., description="该股票的历史分析总次数")
+    last_analysis_time: Optional[str] = Field(None, description="最近一次分析时间")
+    model_used: Optional[str] = Field(
+        None,
+        description="最新分析使用的模型快照",
+    )
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": 1234,
+            "stock_code": "600519",
+            "stock_name": "贵州茅台",
+            "report_type": "detailed",
+            "sentiment_score": 75,
+            "operation_advice": "持有",
+            "analysis_count": 18,
+            "last_analysis_time": "2024-01-01T12:00:00",
+            "model_used": "Gemini 2.5 Pro",
+        }
+    })
+
+
+class StockBarResponse(BaseModel):
+    """个股栏列表响应"""
+
+    total: int = Field(..., description="不重复个股数")
+    items: List[StockBarItem] = Field(default_factory=list, description="个股列表")
+
+
+class WatchlistRequest(BaseModel):
+    """自选队列操作请求"""
+
+    stock_code: str = Field(..., description="股票代码", min_length=1)
+
+
+class WatchlistResponse(BaseModel):
+    """自选队列响应"""
+
+    stock_codes: List[str] = Field(default_factory=list, description="当前自选队列股票代码列表")
+    message: str = Field(..., description="操作结果描述")
 
 
 class RunDiagnosticComponent(BaseModel):
