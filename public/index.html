@@ -192,11 +192,11 @@
                             </div>
                             <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
                                 <div class="text-xs text-gray-500 mb-1">趋势分</div>
-                                <div class="text-base font-bold text-gray-900">{{ getTrendScore(current) }}/100</div>
+                                <div :class="['text-base font-bold', getScoreColor(getTrendScore(current))]">{{ getTrendScore(current) }}/100</div>
                             </div>
                             <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                                <div class="text-xs text-gray-500 mb-1">风险提示</div>
-                                <div class="text-base font-bold text-red-600">{{ getRiskCount(current) }} 条</div>
+                                <div class="text-xs text-gray-500 mb-1">舆情分</div>
+                                <div :class="['text-base font-bold', getScoreColor(getSentimentScore(current))]">{{ getSentimentScore(current) }}/100</div>
                             </div>
                         </div>
 
@@ -645,17 +645,17 @@
                     const trend = getTrendScore(item);
                     const sentiment = item.dashboard?.sentiment_score ?? item.sentiment_score ?? 50;
 
-                    // 1. 空头排列（破位下跌）：趋势拥有一票否决权，极度压缩情绪权重
+                    // 1. 空头排列（破位下跌）：趋势一票否决，极度压缩情绪权重，严防抄底
                     if (trend <= 30) {
                         return Math.round(trend * 0.8 + sentiment * 0.2);
                     }
-                    // 2. 多头排列（主升浪）：趋势确认安全，利好情绪起乘数放大作用
+                    // 2. 多头排列（主升浪）：释放情绪弹性，利好起乘数效应，对盘后爆雷保持极高敏感度
                     else if (trend >= 60) {
-                        return Math.round(trend * 0.5 + sentiment * 0.5);
+                        return Math.round(trend * 0.45 + sentiment * 0.55);
                     }
-                    // 3. 震荡修复（筑底/横盘）：技术面防守为主，情绪面辅助
+                    // 3. 震荡修复（筑底/横盘）：利用非线性阶跃，盘后强势催化能迅速拉高分值提示突破
                     else {
-                        return Math.round(trend * 0.7 + sentiment * 0.3);
+                        return Math.round(trend * 0.55 + sentiment * 0.45);
                     }
                 }
 
@@ -689,6 +689,10 @@
 
                 const getTrendScore = (item) => {
                     return Number(item?.dashboard?.data_perspective?.trend_status?.trend_score ?? item?.sentiment_score ?? 0)
+                }
+
+                const getSentimentScore = (item) => {
+                    return Number(item?.dashboard?.sentiment_score ?? item?.sentiment_score ?? 50)
                 }
 
                 const getRiskCount = (item) => {
@@ -756,7 +760,7 @@
                     visibleReports, activeTab, getRangePercent,
                     getScoreColor, getAdviceColor, getOverallScore, getPrice, getChangePct,
                     getDisplayAdvice, getDecisionLabel, getTrendScore, getRiskCount,
-                    getPrimarySummary
+                    getPrimarySummary, getSentimentScore
                 }
             }
         }).mount('#app')
