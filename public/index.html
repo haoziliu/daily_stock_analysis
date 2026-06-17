@@ -10,6 +10,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
 
@@ -234,6 +235,17 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 历史得分趋势 -->
+                        <div v-show="hasHistory(current)" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                            <h3 class="card-title border-b border-gray-100 pb-2 mb-4 flex items-center justify-between">
+                                <span class="flex items-center"><span class="mr-2 text-lg">📈</span> 历史得分趋势</span>
+                                <span class="text-xs text-gray-400 font-normal">趋势分、舆情分与综合操盘分走势</span>
+                            </h3>
+                            <div class="relative w-full h-64 md:h-72">
+                                <canvas id="historyChart"></canvas>
                             </div>
                         </div>
 
@@ -599,7 +611,7 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted } = Vue
+        const { createApp, ref, computed, onMounted, watch, nextTick } = Vue
 
         createApp({
             setup() {
@@ -609,10 +621,142 @@
                 const selectedIndex = ref(0)
                 const loading = ref(true)
                 const activeTab = ref('decision')
+                const historyData = ref({})
+                let chartInstance = null
 
                 const current = computed(() => {
                     return (selectedIndex.value >= 0 && reports.value.length > 0) ? reports.value[selectedIndex.value] : null
                 })
+
+                const hasHistory = (item) => {
+                    if (!item) return false
+                    return !!(historyData.value[item.code] && historyData.value[item.code].length > 0)
+                }
+
+                const updateHistoryChart = () => {
+                    if (!current.value) return;
+                    const code = current.value.code;
+                    const stockHistory = historyData.value[code] || [];
+                    if (stockHistory.length === 0) return;
+                    
+                    const sortedHistory = [...stockHistory].sort((a, b) => a.date.localeCompare(b.date));
+                    
+                    const dates = sortedHistory.map(h => h.date);
+                    const overallScores = sortedHistory.map(h => h.overall_score);
+                    const trendScores = sortedHistory.map(h => h.trend_score);
+                    const sentimentScores = sortedHistory.map(h => h.sentiment_score);
+                    
+                    nextTick(() => {
+                        const canvas = document.getElementById('historyChart');
+                        if (!canvas) return;
+                        const ctx = canvas.getContext('2d');
+                        
+                        if (chartInstance) {
+                            chartInstance.data.labels = dates;
+                            chartInstance.data.datasets[0].data = overallScores;
+                            chartInstance.data.datasets[1].data = trendScores;
+                            chartInstance.data.datasets[2].data = sentimentScores;
+                            chartInstance.update();
+                        } else {
+                            chartInstance = new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: dates,
+                                    datasets: [
+                                        {
+                                            label: '综合操盘分',
+                                            data: overallScores,
+                                            borderColor: '#10b981', // green-500
+                                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                                            borderWidth: 3,
+                                            tension: 0.3,
+                                            fill: true,
+                                            pointRadius: 3,
+                                            pointHoverRadius: 5
+                                        },
+                                        {
+                                            label: '趋势分',
+                                            data: trendScores,
+                                            borderColor: '#3b82f6', // blue-500
+                                            backgroundColor: 'transparent',
+                                            borderWidth: 2,
+                                            borderDash: [5, 5],
+                                            tension: 0.3,
+                                            pointRadius: 2,
+                                            pointHoverRadius: 4
+                                        },
+                                        {
+                                            label: '舆情分',
+                                            data: sentimentScores,
+                                            borderColor: '#f59e0b', // amber-500
+                                            backgroundColor: 'transparent',
+                                            borderWidth: 2,
+                                            borderDash: [2, 2],
+                                            tension: 0.3,
+                                            pointRadius: 2,
+                                            pointHoverRadius: 4
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    interaction: {
+                                        mode: 'index',
+                                        intersect: false,
+                                    },
+                                    plugins: {
+                                        legend: {
+                                            position: 'top',
+                                            labels: {
+                                                boxWidth: 12,
+                                                font: {
+                                                    size: 11,
+                                                    weight: 'bold'
+                                                }
+                                            }
+                                        },
+                                        tooltip: {
+                                            padding: 10,
+                                            cornerRadius: 8,
+                                            backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                                            titleFont: { size: 12, weight: 'bold' },
+                                            bodyFont: { size: 12 }
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            min: 0,
+                                            max: 100,
+                                            grid: {
+                                                color: 'rgba(241, 245, 249, 1)'
+                                            },
+                                            ticks: {
+                                                font: { size: 10 }
+                                            }
+                                        },
+                                        x: {
+                                            grid: {
+                                                display: false
+                                            },
+                                            ticks: {
+                                                font: { size: 10 },
+                                                maxRotation: 45,
+                                                minRotation: 45
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                };
+
+                watch([current, activeTab], () => {
+                    if (activeTab.value === 'decision') {
+                        setTimeout(updateHistoryChart, 50);
+                    }
+                });
 
                 const getRangePercent = (item) => {
                     if (!item || !item.dashboard?.data_perspective?.price_position) return 50
@@ -718,9 +862,23 @@
 
                 onMounted(async () => {
                     try {
-                        const response = await fetch('./daily_report.json?t=' + new Date().getTime())
-                        const data = await response.json()
+                        // 同时请求日报数据与历史得分走势数据
+                        const [repResponse, histResponse] = await Promise.all([
+                            fetch('./daily_report.json?t=' + new Date().getTime()),
+                            fetch('./score_history.json?t=' + new Date().getTime()).catch(() => null)
+                        ])
+
+                        const data = await repResponse.json()
                         let allReports = data.reports || []
+
+                        if (histResponse && histResponse.ok) {
+                            try {
+                                const histJson = await histResponse.json()
+                                historyData.value = histJson.history || {}
+                            } catch (e) {
+                                console.warn('解析历史得分数据失败:', e)
+                            }
+                        }
 
                         // 尝试从报告列表中提取大盘复盘
                         const marketReport = allReports.find(r => r.code === 'MARKET' || r.report_type === 'market_review')
@@ -747,6 +905,11 @@
                         reports.value = fetchedReports
                         updateTime.value = data.update_time || ''
 
+                        // 数据加载完成后，如果是选中了个股，触发图表绘制
+                        if (selectedIndex.value >= 0 || fetchedReports.length > 0) {
+                            setTimeout(updateHistoryChart, 100);
+                        }
+
                     } catch (error) {
                         console.error('获取数据失败:', error)
                         alert('获取最新报告失败，请检查数据文件。')
@@ -760,7 +923,7 @@
                     visibleReports, activeTab, getRangePercent,
                     getScoreColor, getAdviceColor, getOverallScore, getPrice, getChangePct,
                     getDisplayAdvice, getDecisionLabel, getTrendScore, getRiskCount,
-                    getPrimarySummary, getSentimentScore
+                    getPrimarySummary, getSentimentScore, hasHistory
                 }
             }
         }).mount('#app')
