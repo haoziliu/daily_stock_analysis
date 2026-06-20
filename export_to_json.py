@@ -62,7 +62,6 @@ def update_history_file(new_reports, update_time_str):
             print(f"读取历史数据文件失败，将以空白结构继续: {e}")
         
     # 2. 增量更新新导出的记录
-    date_str = update_time_str.split(" ")[0]
     for r in new_reports:
         code = r.get("code")
         if not code or code == "MARKET" or not r.get("dashboard"):
@@ -71,6 +70,10 @@ def update_history_file(new_reports, update_time_str):
         trend = get_trend_score(r)
         sentiment = get_sentiment_score(r)
         overall = calculate_overall_score(trend, sentiment)
+        
+        # 优先使用报告里的时间，如果不存在则使用 update_time_str 作为 fallback
+        report_time = r.get("created_at") or update_time_str
+        date_str = report_time.split(" ")[0].split("T")[0]
         
         if code not in history:
             history[code] = []
