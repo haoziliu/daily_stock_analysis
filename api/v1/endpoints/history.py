@@ -33,6 +33,7 @@ from api.v1.schemas.history import (
     StockBarResponse,
 )
 from api.v1.schemas.common import ErrorResponse
+from api.v1.schemas.run_flow import RunFlowSnapshot
 from src.storage import DatabaseManager
 from src.report_language import (
     get_sentiment_label,
@@ -258,6 +259,7 @@ def get_stock_bar(
         from datetime import date as date_type
         from src.utils.data_processing import parse_json_field
 
+        service = HistoryService(db_manager)
         start = date_type.fromisoformat(start_date) if start_date else None
         end = date_type.fromisoformat(end_date) if end_date else None
 
@@ -273,7 +275,8 @@ def get_stock_bar(
         # Deduplicate by normalized code, keeping the record with highest id
         seen: dict = {}
         for record in records:
-            norm_code = _normalize_code_for_grouping(record.code or "")
+            display_code = service._display_stock_code(record.code or "")
+            norm_code = _normalize_code_for_grouping(display_code)
             if norm_code not in seen or record.id > seen[norm_code].id:
                 seen[norm_code] = record
 
@@ -294,16 +297,15 @@ def get_stock_bar(
                 ),
             )
 
+            display_stock_code = service._display_stock_code(record.code)
             analysis_count = db_manager.get_analysis_history_paginated(
-                code=HistoryService._history_code_filter_candidates(
-                    record.code or "",
-                ),
+                code=HistoryService._history_code_filter_candidates(display_stock_code),
                 limit=1,
             )[1]
             items.append(
                 StockBarItem(
                     id=record.id,
-                    stock_code=record.code or "",
+                    stock_code=display_stock_code,
                     stock_name=record.name,
                     report_type=record.report_type,
                     sentiment_score=record.sentiment_score,
@@ -315,7 +317,10 @@ def get_stock_bar(
                         record.created_at.isoformat() if record.created_at else None
                     ),
                     model_used=normalize_model_used(model_used),
-                    market_phase_summary=extract_market_phase_summary(getattr(record, "context_snapshot", None)),
+                    market_phase_summary=service._display_market_phase_summary(
+                        record.code,
+                        getattr(record, "context_snapshot", None),
+                    ),
                 )
             )
 
@@ -384,7 +389,9 @@ def get_history_detail(
         # 同时不混用 `change_60d`（60 日累计涨跌幅）作为日内 change_pct 的兜底。
         context_snapshot = result.get("context_snapshot")
         analysis_context_pack_overview = extract_analysis_context_pack_overview(context_snapshot)
-        market_phase_summary = extract_market_phase_summary(context_snapshot)
+        market_phase_summary = result.get("market_phase_summary")
+        if market_phase_summary is None:
+            market_phase_summary = extract_market_phase_summary(context_snapshot)
         api_context_snapshot = sanitize_context_snapshot_for_api(context_snapshot)
         realtime_fields = extract_realtime_detail_fields(context_snapshot)
         current_price = realtime_fields.get("current_price")
@@ -452,7 +459,7 @@ def get_history_detail(
         
         fallback_fundamental = db_manager.get_latest_fundamental_snapshot(
             query_id=result.get("query_id", ""),
-            code=result.get("stock_code", ""),
+            code=result.get("storage_stock_code") or result.get("stock_code", ""),
         )
         extracted_fundamental = extract_fundamental_detail_fields(
             context_snapshot=result.get("context_snapshot"),
@@ -533,6 +540,49 @@ def get_history_diagnostics(
             detail={
                 "error": "internal_error",
                 "message": f"查询运行诊断摘要失败: {str(e)}",
+            },
+        )
+
+
+@router.get(
+    "/{record_id}/flow",
+    response_model=RunFlowSnapshot,
+    responses={
+        200: {"description": "运行流快照"},
+        404: {"description": "报告不存在", "model": ErrorResponse},
+        500: {"description": "服务器错误", "model": ErrorResponse},
+    },
+    summary="获取历史报告运行流",
+    description="根据分析历史记录 ID 或 query_id 获取数据流/信息流快照。",
+)
+def get_history_run_flow(
+    record_id: str,
+    db_manager: DatabaseManager = Depends(get_database_manager),
+) -> RunFlowSnapshot:
+    """
+    获取历史报告运行流。
+    """
+    try:
+        service = HistoryService(db_manager)
+        snapshot = service.resolve_and_get_run_flow(record_id)
+        if snapshot is None:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": "not_found",
+                    "message": f"未找到 id/query_id={record_id} 的分析记录",
+                },
+            )
+        return snapshot
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"查询运行流快照失败: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "internal_error",
+                "message": f"查询运行流快照失败: {str(e)}",
             },
         )
 
