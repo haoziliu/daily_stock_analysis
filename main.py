@@ -689,6 +689,14 @@ def run_full_analysis(
             logger.info(
                 "今日所有相关市场均为非交易日，跳过执行。可使用 --force-run 强制执行。"
             )
+            github_output = os.getenv('GITHUB_OUTPUT')
+            if github_output:
+                try:
+                    with open(github_output, 'a') as f:
+                        f.write("skipped=true\n")
+                    logger.info("已写入 GITHUB_OUTPUT: skipped=true")
+                except Exception as e:
+                    logger.warning(f"写入 GITHUB_OUTPUT 失败: {e}")
             return True
         if set(filtered_codes) != set(effective_codes):
             skipped = set(effective_codes) - set(filtered_codes)
@@ -987,6 +995,14 @@ def run_full_analysis(
         except Exception as e:
             logger.warning(f"自动回测失败（已忽略）: {e}")
 
+        github_output = os.getenv('GITHUB_OUTPUT')
+        if github_output:
+            try:
+                with open(github_output, 'a') as f:
+                    f.write("skipped=false\n")
+                logger.info("已写入 GITHUB_OUTPUT: skipped=false")
+            except Exception as e:
+                logger.warning(f"写入 GITHUB_OUTPUT 失败: {e}")
         return True
 
     except Exception as e:
@@ -1420,6 +1436,14 @@ def main() -> int:
                 )
                 if effective_region == '':
                     logger.info("今日大盘复盘相关市场均为非交易日，跳过执行。可使用 --force-run 强制执行。")
+                    github_output = os.getenv('GITHUB_OUTPUT')
+                    if github_output:
+                        try:
+                            with open(github_output, 'a') as f:
+                                f.write("skipped=true\n")
+                            logger.info("已写入 GITHUB_OUTPUT: skipped=true")
+                        except Exception as e:
+                            logger.warning(f"写入 GITHUB_OUTPUT 失败: {e}")
                     return 0
 
             logger.info("模式: 仅大盘复盘")
@@ -1435,6 +1459,14 @@ def main() -> int:
                 override_region=effective_region,
                 trigger_source="cli",
             )
+            github_output = os.getenv('GITHUB_OUTPUT')
+            if github_output:
+                try:
+                    with open(github_output, 'a') as f:
+                        f.write("skipped=false\n")
+                    logger.info("已写入 GITHUB_OUTPUT: skipped=false")
+                except Exception as e:
+                    logger.warning(f"写入 GITHUB_OUTPUT 失败: {e}")
             return 0
 
         # 模式2: 定时任务模式

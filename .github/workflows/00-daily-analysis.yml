@@ -1,11 +1,7 @@
 name: 每日股票分析
 
 on:
-  # 定时触发 - 美股收盘后 2 小时 (UTC 22:00 = 美东 18:00)
-  schedule:
-    - cron: '0 22 * * 1-5'     # 周一到周五，UTC 22:00 = 美东 18:00（收盘后 2 小时）
-  
-  # 手动触发
+  # 手动触发 / 外部触发 (例如由外部 cron 定时调度调用)
   workflow_dispatch:
     inputs:
       mode:
@@ -60,6 +56,7 @@ jobs:
           mkdir -p data logs reports
       
       - name: 执行股票分析
+        id: analyze
         env:
           # ==========================================
           # AI 配置
@@ -514,9 +511,20 @@ jobs:
           fi
 
       - name: 导出静态 JSON 数据
-        run: python export_to_json.py
+        if: steps.analyze.outputs.skipped != 'true'
+        env:
+          SCORE_HISTORY_URL: ${{ vars.SCORE_HISTORY_URL || secrets.SCORE_HISTORY_URL }}
+        run: |
+          if [ -n "$SCORE_HISTORY_URL" ]; then
+            echo "📥 尝试从配置的 $SCORE_HISTORY_URL 拉取最新历史数据进行合并累积..."
+            curl -s -f -o public/score_history.json "$SCORE_HISTORY_URL" || echo "⚠️ 线上拉取失败，将使用仓库内置的当前分支数据进行合并。"
+          else
+            echo "ℹ️ 未配置 SCORE_HISTORY_URL，将直接使用 GitHub 仓库中的数据进行合并。"
+          fi
+          python export_to_json.py
 
       - name: Deploy to Cloudflare Pages
+        if: steps.analyze.outputs.skipped != 'true'
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
