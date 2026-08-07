@@ -28,6 +28,7 @@ from src.agent.llm_adapter import (
     register_fallback_model_pricing,
 )
 from src.agent.provider_trace import resolved_model_provider_identity
+from src.agent.risk_override import build_risk_style_options
 from src.agent.skills.defaults import CORE_TRADING_SKILL_POLICY_ZH
 from src.config import (
     Config,
@@ -1986,7 +1987,27 @@ class GeminiAnalyzer:
             "position_strategy": {
                 "suggested_position": "建议仓位：X成",
                 "entry_plan": "分批建仓策略描述",
-                "risk_control": "风控策略描述"
+                "risk_control": "风控策略描述",
+                "styles": {
+                    "balanced": {
+                        "suggested_position": "建议仓位：2-3成",
+                        "position_advice": "稳健型策略描述（结合关键支撑位与市场情绪的平衡性分析）",
+                        "stop_loss": "止损点位及防守纪律",
+                        "risk_control": "稳健风控说明"
+                    },
+                    "aggressive": {
+                        "suggested_position": "建议仓位：5-6成",
+                        "position_advice": "激进型策略描述（结合该股突破动能、催化剂与追高止盈策略）",
+                        "stop_loss": "激进型止损点位（如允许短线洗盘容忍度）",
+                        "risk_control": "激进风控说明"
+                    },
+                    "conservative": {
+                        "suggested_position": "建议仓位：1-2成",
+                        "position_advice": "保守型策略描述（结合该股安全边际、低吸试错与防守限制）",
+                        "stop_loss": "保守型严格止损点位（触发即走）",
+                        "risk_control": "保守风控说明"
+                    }
+                }
             },
             "action_checklist": [
                 "✅/⚠️/❌ 检查项1：多头排列",
@@ -4567,8 +4588,14 @@ class GeminiAnalyzer:
                 decision_type = infer_decision_type_from_advice(op, default='hold')
 
             explicit_action = data.get("action")
-            if explicit_action is None and isinstance(dashboard, dict):
-                explicit_action = dashboard.get("action")
+            if isinstance(dashboard, dict):
+                if explicit_action is None:
+                    explicit_action = dashboard.get("action")
+                battle_plan = dashboard.setdefault("battle_plan", {})
+                if isinstance(battle_plan, dict):
+                    pos_strat = battle_plan.setdefault("position_strategy", {})
+                    if isinstance(pos_strat, dict) and "styles" not in pos_strat:
+                        pos_strat["styles"] = build_risk_style_options(dashboard)
 
             result = AnalysisResult(
                 code=code,

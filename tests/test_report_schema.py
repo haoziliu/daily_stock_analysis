@@ -123,6 +123,46 @@ class TestAnalysisReportSchema(unittest.TestCase):
         with self.assertRaises(Exception):
             AnalysisReportSchema.model_validate(data)
 
+    def test_schema_supports_risk_style_options(self) -> None:
+        """Schema accepts risk style options dictionary under position_strategy."""
+        from src.agent.risk_override import build_risk_style_options
+        dashboard_data = {
+            "battle_plan": {
+                "position_strategy": {
+                    "suggested_position": "建议仓位：3成 (30%)",
+                    "entry_plan": "支撑位低吸",
+                    "risk_control": "破位止损",
+                },
+                "sniper_points": {
+                    "stop_loss": 14.5,
+                }
+            }
+        }
+        styles = build_risk_style_options(dashboard_data)
+        self.assertIn("balanced", styles)
+        self.assertIn("aggressive", styles)
+        self.assertIn("conservative", styles)
+
+        data = {
+            "stock_name": "测试股票",
+            "sentiment_score": 75,
+            "dashboard": {
+                "battle_plan": {
+                    "position_strategy": {
+                        "suggested_position": "建议仓位：3成 (30%)",
+                        "styles": styles,
+                    }
+                }
+            }
+        }
+        schema = AnalysisReportSchema.model_validate(data)
+        self.assertIsNotNone(schema.dashboard)
+        bp = schema.dashboard.battle_plan
+        self.assertIsNotNone(bp)
+        self.assertIsNotNone(bp.position_strategy)
+        self.assertIsNotNone(bp.position_strategy.styles)
+        self.assertEqual(bp.position_strategy.styles["balanced"].suggested_position, "建议仓位：3成 (30%)")
+
 
 class TestAnalyzerSchemaFallback(unittest.TestCase):
     """Analyzer fallback when schema validation fails."""

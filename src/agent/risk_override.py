@@ -339,6 +339,136 @@ def _downgrade_signal(signal: str, steps: int = 1) -> str:
     return order[min(len(order) - 1, index + max(0, steps))]
 
 
+def build_risk_style_options(
+    dashboard: Dict[str, Any],
+    *,
+    default_position: str = "",
+    stop_loss_ref: Optional[Union[str, float, int]] = None,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Build 3 risk-style options (balanced, aggressive, conservative) based on baseline analysis.
+    """
+    if not isinstance(dashboard, dict):
+        dashboard = {}
+    battle_plan = dashboard.get("battle_plan") or {}
+    if not isinstance(battle_plan, dict):
+        battle_plan = {}
+    pos_strat = battle_plan.get("position_strategy") or {}
+    if not isinstance(pos_strat, dict):
+        pos_strat = {}
+    sniper_points = battle_plan.get("sniper_points") or {}
+    if not isinstance(sniper_points, dict):
+        sniper_points = {}
+    core_conclusion = dashboard.get("core_conclusion") or {}
+    if not isinstance(core_conclusion, dict):
+        core_conclusion = {}
+    pos_advice = core_conclusion.get("position_advice") or {}
+    if not isinstance(pos_advice, dict):
+        pos_advice = {}
+
+    base_pos = pos_strat.get("suggested_position") or default_position or "建议仓位：2-3成 (25%)"
+    base_entry = pos_strat.get("entry_plan") or "支撑位分批吸筹/低吸"
+    base_risk = pos_strat.get("risk_control") or "破位止损，防范流动性回撤"
+    base_no_pos = pos_advice.get("no_position") or "支撑位分批建仓"
+
+    # 如果 LLM 已经生成了自定义的 styles 且包含完整建议，直接优先复用 LLM 的原生深度分析
+    existing_styles = pos_strat.get("styles")
+    if isinstance(existing_styles, dict):
+        agg_item = existing_styles.get("aggressive")
+        cons_item = existing_styles.get("conservative")
+        bal_item = existing_styles.get("balanced")
+        if isinstance(agg_item, dict) and agg_item.get("position_advice") and isinstance(cons_item, dict) and cons_item.get("position_advice"):
+            labels = {"balanced": "⚖️ 稳健型 (默认)", "aggressive": "🚀 激进型", "conservative": "🛡️ 保守型"}
+            res = {}
+            for key in ["balanced", "aggressive", "conservative"]:
+                src = existing_styles.get(key) if isinstance(existing_styles.get(key), dict) else {}
+                res[key] = {
+                    "label": src.get("label") or labels[key],
+                    "suggested_position": src.get("suggested_position") or (pos_strat.get("suggested_position") or default_position or "按需建仓"),
+                    "position_advice": src.get("position_advice") or (pos_advice.get("no_position") or "按策略执行"),
+                    "stop_loss": src.get("stop_loss") or str(sniper_points.get("stop_loss") or stop_loss_ref or "MA20支撑"),
+                    "entry_strategy": src.get("entry_strategy") or (pos_strat.get("entry_plan") or "分批建仓"),
+                    "risk_control": src.get("risk_control") or (pos_strat.get("risk_control") or "破位风控"),
+                }
+            return res
+
+    stop_loss_raw = str(sniper_points.get("stop_loss") or stop_loss_ref or "跌破止损位/MA20")
+    target_raw = str(sniper_points.get("take_profit") or "阻力位")
+    
+    # 提取行情状态 (得分、趋势预测、操作建议)
+    overall_score = 50
+    try:
+        score_val = dashboard.get("overall_score")
+        if score_val is not None:
+            overall_score = float(score_val)
+    except (ValueError, TypeError):
+        pass
+
+    action_label = str(dashboard.get("overall_advice") or pos_strat.get("action") or "").lower()
+    is_bullish = overall_score >= 60 or "买入" in action_label or "看多" in action_label
+    is_bearish = overall_score < 40 or "卖出" in action_label or "避险" in action_label
+
+    import re
+
+    def _clean_price_only(raw_str: str) -> str:
+        if not raw_str:
+            return ""
+        s = str(raw_str).strip()
+        for prefix in ["止损位：", "止损价：", "目标位：", "目标价：", "理想买入：", "次优买入：", "止损参考："]:
+            s = s.replace(prefix, "")
+        s = re.sub(r'[\(（].*?[\)）]', '', s).strip()
+        return s or str(raw_str).strip()
+
+    stop_loss_val = _clean_price_only(stop_loss_raw) or "支撑位"
+    target_val = _clean_price_only(target_raw) or "阻力位"
+
+    if is_bullish:
+        # 多头突破/强研判场景
+        agg_advice = f"若放量有效突破阻力位（{target_val}），可重仓5-6成顺势追击主升浪；跌破{stop_loss_val}立即锁定利润"
+        cons_advice = f"多头趋势中不盲目追高，等待股价缩量回踩强支撑位（{stop_loss_val}）企稳后以1-2成轻仓参与"
+        agg_risk = "关注高位放量滞涨风险，移动止盈保护浮盈"
+        cons_risk = "严格分批建仓，严禁在阻力位附近追高"
+    elif is_bearish:
+        # 弱势空头/防守场景
+        agg_advice = f"仅限超跌反弹短线博弈（仓位控制在3-4成），反弹至阻力位（{target_val}）附近必须快进快出"
+        cons_advice = f"趋势偏弱，建议持续空仓观望；无有效站稳支撑位（{stop_loss_val}）信号前坚决不建仓"
+        agg_risk = "短线快进快出，严禁深套，一旦破位无条件切仓"
+        cons_risk = "本金安全第一，严格保持空仓防守纪律"
+    else:
+        # 震荡盘整/箱体场景
+        agg_advice = f"围绕[{stop_loss_val}, {target_val}]箱体波段操作；若向上突破箱体顶端（{target_val}）追加至5成仓位"
+        cons_advice = f"仅在股价缩量触及箱体下沿支撑位（{stop_loss_val}）并出现止跌K线时，动用1-2成仓试错"
+        agg_risk = "防范箱体假突破洗盘，触及箱体上沿及时分批减仓"
+        cons_risk = "控制最大回撤，破位下沿无条件清仓观望"
+
+    return {
+        "balanced": {
+            "label": "⚖️ 稳健型 (默认)",
+            "suggested_position": base_pos,
+            "position_advice": base_no_pos,
+            "stop_loss": stop_loss_val,
+            "entry_strategy": base_entry,
+            "risk_control": base_risk,
+        },
+        "aggressive": {
+            "label": "🚀 激进型",
+            "suggested_position": "建议仓位：5-6成 (55%)" if not is_bearish else "建议仓位：3-4成 (35%)",
+            "position_advice": agg_advice,
+            "stop_loss": f"{stop_loss_val} (放宽 1-2% 容忍短线洗盘)" if not is_bearish else f"{stop_loss_val} (严格紧贴支撑线止损)",
+            "entry_strategy": "突破建仓 / 动能确认后快速全量入场",
+            "risk_control": agg_risk,
+        },
+        "conservative": {
+            "label": "🛡️ 保守型",
+            "suggested_position": "建议仓位：1-2成 (15%)" if not is_bearish else "建议仓位：0-1成 (5%)",
+            "position_advice": cons_advice,
+            "stop_loss": f"{stop_loss_val} (收紧硬止损触发即走)",
+            "entry_strategy": "支撑位低吸分批挂单 / 无企稳信号绝不建仓",
+            "risk_control": cons_risk,
+        },
+    }
+
+
 __all__ = [
     "DashboardDecisionSignal",
     "RiskApplicationReason",
@@ -347,6 +477,7 @@ __all__ = [
     "RiskTrigger",
     "build_risk_override_application",
     "build_risk_override_plan",
+    "build_risk_style_options",
     "classify_risk_application_reason",
     "validate_risk_application_transition",
 ]

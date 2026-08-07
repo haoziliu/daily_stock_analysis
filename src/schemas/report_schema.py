@@ -98,12 +98,24 @@ class SniperPoints(BaseModel):
     take_profit: Optional[Union[str, int, float]] = None
 
 
+class RiskStyleItem(BaseModel):
+    """Risk-style specific strategy item (e.g. aggressive, balanced, conservative)."""
+
+    label: Optional[str] = None
+    suggested_position: Optional[str] = None
+    position_advice: Optional[str] = None
+    stop_loss: Optional[str] = None
+    entry_strategy: Optional[str] = None
+    risk_control: Optional[str] = None
+
+
 class PositionStrategy(BaseModel):
     """Position strategy."""
 
     suggested_position: Optional[str] = None
     entry_plan: Optional[str] = None
     risk_control: Optional[str] = None
+    styles: Optional[Dict[str, RiskStyleItem]] = None
 
 
 class BattlePlan(BaseModel):

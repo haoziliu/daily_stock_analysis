@@ -179,226 +179,224 @@
                         </button>
                     </div>
 
-                    <!-- TAB 1: 操盘决策 -->
-                    <div v-show="activeTab === 'decision'" class="space-y-6">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                                <div class="text-xs text-gray-500 mb-1">决策类型</div>
-                                <div :class="['text-base font-bold', getAdviceColor(getDisplayAdvice(current))]">{{
-                                    getDecisionLabel(current) }}</div>
+                    <!-- TAB 1: 操盘决策 (按投资者决策心理逻辑重构) -->
+                    <div v-show="activeTab === 'decision'" class="space-y-5">
+                        
+                        <!-- 1. 🎯 核心决策宣告卡片 (包含 AI 综合诊断一段话总结) -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-3 border-b border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <span :class="['text-base font-black px-3 py-1 rounded-lg text-white shadow-sm', getOverallScore(current) >= 60 ? 'bg-green-600' : (getOverallScore(current) >= 40 ? 'bg-slate-600' : 'bg-red-600')]">
+                                        {{ getDisplayAdvice(current) }}
+                                    </span>
+                                    <div>
+                                        <div class="text-sm text-gray-600 font-medium">趋势预测: <span class="font-bold text-gray-900">{{ current?.trend_prediction }}</span></div>
+                                        <div class="text-xs text-gray-400 mt-0.5">置信度: {{ current?.confidence_level || '中' }} · 时效: {{ current?.dashboard?.core_conclusion?.time_sensitivity || '今日内' }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4 text-xs md:text-sm bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 self-start sm:self-auto">
+                                    <div><span class="text-gray-500">综合操盘分: </span><span :class="['font-black text-base', getScoreColor(getOverallScore(current))]">{{ getOverallScore(current) }}</span></div>
+                                    <div class="border-l border-gray-200 h-4"></div>
+                                    <div><span class="text-gray-500">趋势分: </span><span class="font-bold text-gray-800">{{ getTrendScore(current) }}</span></div>
+                                    <div class="border-l border-gray-200 h-4"></div>
+                                    <div><span class="text-gray-500">舆情分: </span><span class="font-bold text-gray-800">{{ getSentimentScore(current) }}</span></div>
+                                </div>
                             </div>
-                            <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                                <div class="text-xs text-gray-500 mb-1">置信度</div>
-                                <div class="text-base font-bold text-gray-900">{{ current.confidence_level || '未知' }}</div>
-                            </div>
-                            <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                                <div class="text-xs text-gray-500 mb-1">趋势分</div>
-                                <div :class="['text-base font-bold', getScoreColor(getTrendScore(current))]">{{ getTrendScore(current) }}/100</div>
-                            </div>
-                            <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                                <div class="text-xs text-gray-500 mb-1">舆情分</div>
-                                <div :class="['text-base font-bold', getScoreColor(getSentimentScore(current))]">{{ getSentimentScore(current) }}/100</div>
-                            </div>
-                        </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div
-                                class="md:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col justify-center">
-                                <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
-                                    <span class="mr-2 text-lg">🤖</span> AI 综合诊断
-                                </h3>
-                                <p class="text-sm text-gray-600 leading-relaxed">
+                            <!-- 一句话核心结论 -->
+                            <p class="text-gray-900 font-bold text-base leading-relaxed mb-4 border-l-4 border-blue-500 pl-3">
+                                {{ current?.dashboard?.core_conclusion?.one_sentence }}
+                            </p>
+
+                            <!-- AI 综合诊断一段话总结 (顶部核心呈现) -->
+                            <div class="bg-gray-50/90 rounded-lg p-4 mb-4 border border-gray-100 text-sm">
+                                <div class="font-bold text-gray-800 mb-1.5 flex items-center text-sm">
+                                    <span class="mr-1.5 text-base">🤖</span> AI 综合诊断总结
+                                </div>
+                                <p class="text-gray-600 leading-relaxed text-sm">
                                     {{ getPrimarySummary(current) }}
                                 </p>
                             </div>
 
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col items-center justify-center relative"
-                                title="严格遵循“顺势交易”的动态加权计算">
-                                <div class="text-xs text-gray-500 font-bold mb-4 tracking-wider text-center">综合操盘分</div>
-
-                                <div class="relative w-28 h-14 flex-shrink-0 flex flex-col items-center">
-                                    <div class="relative w-full h-full">
-                                        <svg viewBox="0 0 100 50" class="w-full h-full overflow-visible">
-                                            <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#f1f5f9"
-                                                stroke-width="10" stroke-linecap="round" />
-                                            <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none"
-                                                :class="['stroke-current transition-all duration-1000 ease-out', getScoreColor(getOverallScore(current))]"
-                                                stroke-width="10" stroke-linecap="round" stroke-dasharray="125.66"
-                                                :stroke-dashoffset="125.66 * (1 - getOverallScore(current) / 100)" />
-                                        </svg>
-                                        <div
-                                            class="absolute bottom-0 left-0 w-full text-center flex flex-col items-center justify-end translate-y-3">
-                                            <span
-                                                :class="['text-3xl font-black leading-none', getScoreColor(getOverallScore(current))]">
-                                                {{ getOverallScore(current) }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 历史得分趋势 -->
-                        <div v-show="hasHistory(current)" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                            <h3 class="card-title border-b border-gray-100 pb-2 mb-4 flex items-center justify-between">
-                                <span class="flex items-center"><span class="mr-2 text-lg">📈</span> 历史得分趋势</span>
-                                <span class="text-xs text-gray-400 font-normal">趋势分、舆情分与综合操盘分走势</span>
-                            </h3>
-                            <div class="relative w-full h-64 md:h-72">
-                                <canvas id="historyChart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- 资金流校准风控 -->
-                        <div v-if="current.dashboard && current.dashboard.decision_stability && current.dashboard.decision_stability.applied"
-                            class="bg-orange-50 rounded-xl shadow-sm border border-orange-200 p-4">
-                            <h3 class="card-title flex items-center mb-1" style="color: #7c2d12;">
-                                <span class="mr-2">🛡️</span> 决策风控已介入
-                            </h3>
-                            <p class="text-sm text-orange-800">
-                                {{ current.dashboard.decision_stability.reason }}
-                            </p>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                                <div class="flex items-center text-sm font-medium text-gray-500 mb-2">
-                                    <svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4">
-                                        </path>
-                                    </svg>
-                                    操作建议
-                                </div>
-                                <div :class="['text-xl font-bold', getAdviceColor(getDisplayAdvice(current))]">
-                                    {{ getDisplayAdvice(current) }}
-                                </div>
-                            </div>
-                            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                                <div class="flex items-center text-sm font-medium text-gray-500 mb-2">
-                                    <svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                                    </svg>
-                                    趋势预测
-                                </div>
-                                <div class="text-xl font-bold text-gray-900">
-                                    {{ current.trend_prediction }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                            <p class="text-gray-900 font-bold text-base leading-relaxed mb-4 border-l-4 border-blue-500 pl-3">
-                                {{ current.dashboard.core_conclusion.one_sentence }}
-                            </p>
-                            <div class="flex items-center text-sm mb-4">
-                                <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold mr-2">时效性</span>
-                                <span class="text-gray-800 font-medium">{{
-                                    current.dashboard.core_conclusion.time_sensitivity }}</span>
-                                <span
-                                    class="ml-4 bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold mr-2">信号</span>
-                                <span class="text-gray-800 font-medium">{{ current.dashboard.core_conclusion.signal_type
-                                    }}</span>
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-4 space-y-3 border border-gray-100">
+                            <!-- 空仓 vs 持仓者操作指引 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm bg-blue-50/40 p-4 rounded-lg border border-blue-100">
                                 <div class="flex items-start">
-                                    <span class="text-lg mr-2 mt-0.5 w-6 shrink-0 text-center">🔭</span>
+                                    <span class="text-lg mr-2 shrink-0">🔭</span>
                                     <div>
-                                        <span class="text-sm font-bold text-gray-800 block leading-tight mb-1">空仓者</span>
-                                        <span class="text-sm text-gray-600 leading-snug">{{
-                                            current.dashboard.core_conclusion.position_advice.no_position }}</span>
+                                        <span class="font-bold text-gray-800 block mb-1">空仓者指引</span>
+                                        <span class="text-gray-600 leading-snug">{{ current?.dashboard?.core_conclusion?.position_advice?.no_position }}</span>
                                     </div>
                                 </div>
-                                <div class="flex items-start">
-                                    <span class="text-lg mr-2 mt-0.5 w-6 shrink-0 text-center">💼</span>
+                                <div class="flex items-start border-t md:border-t-0 md:border-l border-blue-100/80 pt-2 md:pt-0 md:pl-4">
+                                    <span class="text-lg mr-2 shrink-0">💼</span>
                                     <div>
-                                        <span class="text-sm font-bold text-gray-800 block leading-tight mb-1">持仓者</span>
-                                        <span class="text-sm text-gray-600 leading-snug">{{
-                                            current.dashboard.core_conclusion.position_advice.has_position }}</span>
+                                        <span class="font-bold text-gray-800 block mb-1">持仓者指引</span>
+                                        <span class="text-gray-600 leading-snug">{{ current?.dashboard?.core_conclusion?.position_advice?.has_position }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 操盘计划 (狙击点位/行动清单) -->
+                        <!-- 2. 🎯 狙击点位网格 (Sniper Price Levels) -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                             <h3 class="card-title border-b border-gray-100 pb-2 mb-4 flex items-center">
-                                <span class="mr-2">🎯</span> 操盘计划
+                                <span class="mr-2">🎯</span> 关键狙击点位
                             </h3>
-                            <div class="space-y-5">
-                                <div>
-                                    <h4 class="subsection-title border-l-4 border-blue-500 pl-2 mb-3">狙击点位</h4>
-                                    <div class="grid grid-cols-2 gap-3 mb-4">
-                                        <div class="bg-gray-50 p-2 rounded text-center border border-gray-100">
-                                            <div class="text-xs text-gray-500">理想买入</div>
-                                            <div class="font-bold text-gray-900">{{
-                                                current.dashboard.battle_plan.sniper_points.ideal_buy.split(' ')[0] }}</div>
-                                        </div>
-                                        <div class="bg-gray-50 p-2 rounded text-center border border-gray-100">
-                                            <div class="text-xs text-gray-500">次优买入</div>
-                                            <div class="font-bold text-gray-900">{{
-                                                current.dashboard.battle_plan.sniper_points.secondary_buy.split(' ')[0] }}
-                                            </div>
-                                        </div>
-                                        <div class="bg-green-50 p-2 rounded text-center border border-green-100">
-                                            <div class="text-xs text-green-600">目标止盈</div>
-                                            <div class="font-bold text-green-700">{{
-                                                current.dashboard.battle_plan.sniper_points.take_profit.split(' ')[0] }}
-                                            </div>
-                                        </div>
-                                        <div class="bg-red-50 p-2 rounded text-center border border-red-100">
-                                            <div class="text-xs text-red-600">严格止损</div>
-                                            <div class="font-bold text-red-700">{{
-                                                current.dashboard.battle_plan.sniper_points.stop_loss.split(' ')[0] }}</div>
-                                        </div>
-                                    </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div class="bg-gray-50 p-3 rounded-lg text-center border border-gray-100">
+                                    <div class="text-xs text-gray-500 font-medium mb-1">理想买入</div>
+                                    <div class="font-black text-gray-900 text-base md:text-lg">{{ current?.dashboard?.battle_plan?.sniper_points?.ideal_buy?.split(' ')[0] || '-' }}</div>
                                 </div>
-                                <div class="text-sm">
-                                    <h4 class="subsection-title border-l-4 border-blue-500 pl-2 mb-3">仓位与执行</h4>
-                                    <div class="mb-2">
-                                        <span class="field-label">建议仓位:</span>
-                                        <span class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded">{{
-                                            current.dashboard.battle_plan.position_strategy.suggested_position }}</span>
-                                    </div>
-                                    <div class="text-gray-600 leading-snug">{{
-                                        current.dashboard.battle_plan.position_strategy.entry_plan }}</div>
-                                    <div v-if="current.dashboard.battle_plan.position_strategy.risk_control"
-                                        class="mt-3 bg-red-50 border border-red-100 rounded-lg p-3">
-                                        <span class="field-label block mb-1" style="color: #b91c1c;">风险控制</span>
-                                        <span class="text-red-700 leading-snug">{{
-                                            current.dashboard.battle_plan.position_strategy.risk_control }}</span>
-                                    </div>
+                                <div class="bg-gray-50 p-3 rounded-lg text-center border border-gray-100">
+                                    <div class="text-xs text-gray-500 font-medium mb-1">次优买入</div>
+                                    <div class="font-black text-gray-900 text-base md:text-lg">{{ current?.dashboard?.battle_plan?.sniper_points?.secondary_buy?.split(' ')[0] || '-' }}</div>
                                 </div>
-                                <div
-                                    v-if="current.dashboard.battle_plan.action_checklist && current.dashboard.battle_plan.action_checklist.length > 0">
-                                    <h4 class="subsection-title border-l-4 border-blue-500 pl-2 mb-3">行动清单</h4>
-                                    <ul class="space-y-1 text-sm text-gray-700">
-                                        <li v-for="(item, idx) in current.dashboard.battle_plan.action_checklist"
-                                            :key="idx">{{ item }}</li>
-                                    </ul>
+                                <div class="bg-emerald-50 p-3 rounded-lg text-center border border-emerald-100">
+                                    <div class="text-xs text-emerald-600 font-medium mb-1">目标止盈</div>
+                                    <div class="font-black text-emerald-700 text-base md:text-lg">{{ current?.dashboard?.battle_plan?.sniper_points?.take_profit?.split(' ')[0] || '-' }}</div>
+                                </div>
+                                <div class="bg-rose-50 p-3 rounded-lg text-center border border-rose-100">
+                                    <div class="text-xs text-rose-600 font-medium mb-1">严格止损</div>
+                                    <div class="font-black text-rose-700 text-base md:text-lg">{{ current?.dashboard?.battle_plan?.sniper_points?.stop_loss?.split(' ')[0] || '-' }}</div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 3. ⚖️ 风格仓位规划 (专属卡片：风险风格仅控制仓位与执行) -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3 mb-4">
+                                <div>
+                                    <h3 class="card-title flex items-center">
+                                        <span class="mr-2">⚖️</span> 风格仓位规划
+                                    </h3>
+                                    <p class="text-xs text-gray-400 font-normal mt-0.5">选择您的风险偏好风格，计算匹配仓位与防守线</p>
+                                </div>
+                                <!-- 风格切换 Pills -->
+                                <div class="flex bg-gray-100 p-1 rounded-lg text-xs font-bold gap-1 self-start sm:self-auto">
+                                    <button @click="activeRiskStyle = 'balanced'"
+                                        :class="['px-3 py-1.5 rounded-md transition-all duration-200', activeRiskStyle === 'balanced' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900']">
+                                        ⚖️ 稳健型 (默认)
+                                    </button>
+                                    <button @click="activeRiskStyle = 'aggressive'"
+                                        :class="['px-3 py-1.5 rounded-md transition-all duration-200', activeRiskStyle === 'aggressive' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-900']">
+                                        🚀 激进型
+                                    </button>
+                                    <button @click="activeRiskStyle = 'conservative'"
+                                        :class="['px-3 py-1.5 rounded-md transition-all duration-200', activeRiskStyle === 'conservative' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-900']">
+                                        🛡️ 保守型
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3 text-sm">
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 flex items-center justify-between">
+                                    <span class="field-label">建议仓位:</span>
+                                    <span :class="['font-bold px-3 py-1 rounded text-sm', getStyleBadgeClass(activeRiskStyle)]">
+                                        {{ getStyleSuggestedPosition(current) }}
+                                    </span>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-3.5 rounded-lg border border-gray-100 text-gray-700 leading-relaxed">
+                                    <span class="font-bold text-gray-800 block mb-1">💡 专属操作指引:</span>
+                                    {{ getStylePositionAdvice(current) }}
+                                </div>
+
+                                <div class="bg-gray-50 p-3.5 rounded-lg border border-gray-100 text-gray-700 leading-relaxed">
+                                    <span class="font-bold text-gray-800 block mb-1">🎯 风格止损参考:</span>
+                                    <span class="text-red-600 font-semibold">{{ getStyleStopLoss(current) }}</span>
+                                </div>
+
+                                <div v-if="getStyleRiskControl(current)" class="bg-rose-50 border border-rose-100 rounded-lg p-3 text-rose-800">
+                                    <span class="font-bold block mb-1 text-rose-900">⚠️ 风控纪律:</span>
+                                    {{ getStyleRiskControl(current) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. 🔍 决策依据与检查项 (平铺直展，无展开/收起) -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+                            <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center justify-between">
+                                <span class="flex items-center"><span class="mr-2">🔍</span> 决策依据与检查项</span>
+                            </h3>
+
+                            <!-- 信号归因比重条 -->
+                            <div v-if="current?.dashboard?.signal_attribution" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs md:text-sm">
+                                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                    <div class="flex justify-between text-gray-500 mb-1">
+                                        <span>技术面</span><span class="font-bold text-gray-800">{{ current.dashboard.signal_attribution.technical_indicators }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-blue-500 h-full" :style="{ width: (current.dashboard.signal_attribution.technical_indicators || 0) + '%' }"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                    <div class="flex justify-between text-gray-500 mb-1">
+                                        <span>消息面</span><span class="font-bold text-gray-800">{{ current.dashboard.signal_attribution.news_sentiment }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-amber-500 h-full" :style="{ width: (current.dashboard.signal_attribution.news_sentiment || 0) + '%' }"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                    <div class="flex justify-between text-gray-500 mb-1">
+                                        <span>基本面</span><span class="font-bold text-gray-800">{{ current.dashboard.signal_attribution.fundamentals }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-emerald-500 h-full" :style="{ width: (current.dashboard.signal_attribution.fundamentals || 0) + '%' }"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                    <div class="flex justify-between text-gray-500 mb-1">
+                                        <span>大盘环境</span><span class="font-bold text-gray-800">{{ current.dashboard.signal_attribution.market_conditions }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                        <div class="bg-purple-500 h-full" :style="{ width: (current.dashboard.signal_attribution.market_conditions || 0) + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 交易执行观察清单 -->
+                            <div v-if="current?.dashboard?.phase_decision?.watch_conditions?.length > 0">
+                                <div class="text-sm font-bold text-gray-800 mb-1.5">📌 交易观察清单</div>
+                                <ul class="space-y-1.5 text-xs md:text-sm text-gray-700 bg-blue-50/40 p-3 rounded-lg border border-blue-100">
+                                    <li v-for="(cond, idx) in current.dashboard.phase_decision.watch_conditions" :key="idx">• {{ cond }}</li>
+                                </ul>
+                            </div>
+
+                            <!-- 六维行动检查项 (直接展开) -->
+                            <div v-if="current?.dashboard?.battle_plan?.action_checklist?.length > 0" class="pt-3 border-t border-gray-100 text-sm">
+                                <div class="font-bold text-gray-800 mb-2">📋 六维行动检查项</div>
+                                <ul class="space-y-1.5 text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 text-xs md:text-sm">
+                                    <li v-for="(item, idx) in current.dashboard.battle_plan.action_checklist" :key="idx">{{ item }}</li>
+                                </ul>
+                            </div>
+
+                            <!-- 历史得分走势 (直接展开) -->
+                            <div v-show="hasHistory(current)" class="pt-3 border-t border-gray-100 text-sm">
+                                <div class="font-bold text-gray-800 mb-2">📈 历史得分走势</div>
+                                <div class="relative w-full h-52 md:h-60">
+                                    <canvas id="historyChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- TAB 2: 数据深度透视 -->
                     <div v-show="activeTab === 'data'" class="space-y-6">
                         <!-- 后市展望 -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
-                            v-if="current.short_term_outlook || current.medium_term_outlook">
+                            v-if="current?.short_term_outlook || current?.medium_term_outlook">
                             <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
                                 <span class="mr-2">🔮</span> 后市展望
                             </h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div v-if="current.short_term_outlook"
+                                <div v-if="current?.short_term_outlook"
                                     class="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
                                     <h4 class="subsection-title mb-1">短期展望</h4>
                                     <p class="text-blue-800 leading-relaxed">{{ current.short_term_outlook }}</p>
                                 </div>
-                                <div v-if="current.medium_term_outlook"
+                                <div v-if="current?.medium_term_outlook"
                                     class="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
                                     <h4 class="subsection-title mb-1">中期展望</h4>
                                     <p class="text-purple-800 leading-relaxed">{{ current.medium_term_outlook }}</p>
@@ -408,7 +406,7 @@
 
                         <!-- 支撑位/阻力位 视觉滑块 -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5" 
-                             v-if="current.dashboard.data_perspective && current.dashboard.data_perspective.price_position">
+                             v-if="current?.dashboard?.data_perspective?.price_position">
                             <h3 class="card-title border-b border-gray-100 pb-2 mb-4 flex items-center">
                                 <span class="mr-2">📈</span> 支撑/压力区间视觉化
                             </h3>
@@ -456,27 +454,27 @@
 
                         <!-- 深度技术解析 -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
-                            v-if="current.trend_analysis || current.technical_analysis">
+                            v-if="current?.trend_analysis || current?.technical_analysis">
                             <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
                                 <span class="mr-2">🔍</span> 深度技术解析
                             </h3>
                             <div class="space-y-3 text-sm">
-                                <div v-if="current.trend_analysis"
+                                <div v-if="current?.trend_analysis"
                                     class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
                                     <span class="field-label w-24 shrink-0 mb-1 md:mb-0">趋势分析:</span>
                                     <span class="text-gray-600 leading-relaxed">{{ current.trend_analysis }}</span>
                                 </div>
-                                <div v-if="current.technical_analysis"
+                                <div v-if="current?.technical_analysis"
                                     class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
                                     <span class="field-label w-24 shrink-0 mb-1 md:mb-0">技术面:</span>
                                     <span class="text-gray-600 leading-relaxed">{{ current.technical_analysis }}</span>
                                 </div>
-                                <div v-if="current.volume_analysis"
+                                <div v-if="current?.volume_analysis"
                                     class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
                                     <span class="field-label w-24 shrink-0 mb-1 md:mb-0">量价分析:</span>
                                     <span class="text-gray-600 leading-relaxed">{{ current.volume_analysis }}</span>
                                 </div>
-                                <div v-if="current.pattern_analysis" class="flex flex-col md:flex-row md:items-start">
+                                <div v-if="current?.pattern_analysis" class="flex flex-col md:flex-row md:items-start">
                                     <span class="field-label w-24 shrink-0 mb-1 md:mb-0">K线形态:</span>
                                     <span class="text-gray-600 leading-relaxed">{{ current.pattern_analysis }}</span>
                                 </div>
@@ -584,7 +582,7 @@
                                     <span class="text-gray-600">{{ current.dashboard.intelligence.latest_news }}</span>
                                 </div>
                                 <div class="pt-2"
-                                    v-if="current.dashboard.intelligence.positive_catalysts && current.dashboard.intelligence.positive_catalysts.length > 0">
+                                    v-if="current?.dashboard?.intelligence?.positive_catalysts && current.dashboard.intelligence.positive_catalysts.length > 0">
                                     <span class="field-label block mb-1" style="color: #15803d;">✨ 利好催化:</span>
                                     <ul class="list-disc list-inside text-gray-600 pl-1 space-y-1">
                                         <li v-for="(item, idx) in current.dashboard.intelligence.positive_catalysts"
@@ -592,7 +590,7 @@
                                     </ul>
                                 </div>
                                 <div class="pt-2"
-                                    v-if="current.dashboard.intelligence.risk_alerts && current.dashboard.intelligence.risk_alerts.length > 0">
+                                    v-if="current?.dashboard?.intelligence?.risk_alerts && current.dashboard.intelligence.risk_alerts.length > 0">
                                     <span class="field-label block mb-1" style="color: #b91c1c;">🚨 风险警报:</span>
                                     <ul class="space-y-1 text-red-700 list-disc list-inside">
                                         <li v-for="(risk, idx) in current.dashboard.intelligence.risk_alerts" :key="idx">{{
@@ -621,8 +619,57 @@
                 const selectedIndex = ref(0)
                 const loading = ref(true)
                 const activeTab = ref('decision')
+                const activeRiskStyle = ref('balanced')
+                const showDetails = ref(false)
                 const historyData = ref({})
                 let chartInstance = null
+
+                const getStyleItem = (item) => {
+                    const styles = item?.dashboard?.battle_plan?.position_strategy?.styles
+                    if (styles && styles[activeRiskStyle.value]) {
+                        return styles[activeRiskStyle.value]
+                    }
+                    return null
+                }
+
+                const getStyleSuggestedPosition = (item) => {
+                    const styleItem = getStyleItem(item)
+                    if (styleItem && styleItem.suggested_position) return styleItem.suggested_position
+                    return item?.dashboard?.battle_plan?.position_strategy?.suggested_position || '暂无建议'
+                }
+
+                const getStylePositionAdvice = (item) => {
+                    const styleItem = getStyleItem(item)
+                    if (styleItem && styleItem.position_advice) return styleItem.position_advice
+                    return item?.dashboard?.core_conclusion?.position_advice?.no_position || '按策略执行'
+                }
+
+                const getStyleStopLoss = (item) => {
+                    const styleItem = getStyleItem(item)
+                    if (styleItem && styleItem.stop_loss) return styleItem.stop_loss
+                    const sniperStop = item?.dashboard?.battle_plan?.sniper_points?.stop_loss
+                    return sniperStop ? sniperStop.split(' ')[0] : '跌破止损位/MA20'
+                }
+
+                const getStyleRiskControl = (item) => {
+                    const styleItem = getStyleItem(item)
+                    if (styleItem && styleItem.risk_control) return styleItem.risk_control
+                    return item?.dashboard?.battle_plan?.position_strategy?.risk_control || ''
+                }
+
+                const getStyleLabel = (styleKey) => {
+                    const labels = { balanced: '稳健型', aggressive: '激进型', conservative: '保守型' }
+                    return labels[styleKey] || '稳健型'
+                }
+
+                const getStyleBadgeClass = (styleKey) => {
+                    const classes = {
+                        balanced: 'text-blue-600 bg-blue-50',
+                        aggressive: 'text-amber-600 bg-amber-50',
+                        conservative: 'text-emerald-600 bg-emerald-50'
+                    }
+                    return classes[styleKey] || 'text-blue-600 bg-blue-50'
+                }
 
                 const current = computed(() => {
                     return (selectedIndex.value >= 0 && reports.value.length > 0) ? reports.value[selectedIndex.value] : null
@@ -920,10 +967,12 @@
 
                 return {
                     reports, updateTime, marketReview, selectedIndex, current, loading, parsedMarkdown,
-                    visibleReports, activeTab, getRangePercent,
+                    visibleReports, activeTab, activeRiskStyle, showDetails, getRangePercent,
                     getScoreColor, getAdviceColor, getOverallScore, getPrice, getChangePct,
                     getDisplayAdvice, getDecisionLabel, getTrendScore, getRiskCount,
-                    getPrimarySummary, getSentimentScore, hasHistory
+                    getPrimarySummary, getSentimentScore, hasHistory,
+                    getStyleSuggestedPosition, getStylePositionAdvice, getStyleStopLoss, getStyleRiskControl,
+                    getStyleLabel, getStyleBadgeClass
                 }
             }
         }).mount('#app')
