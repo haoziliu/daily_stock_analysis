@@ -131,7 +131,15 @@ def _sync_softened_dashboard_fields(
 
     battle_plan = dashboard.get("battle_plan")
     if isinstance(battle_plan, dict):
-        battle_plan["position_strategy"] = _softened_position_strategy(language)
+        existing_strat = battle_plan.get("position_strategy")
+        styles_backup = None
+        if isinstance(existing_strat, dict) and "styles" in existing_strat:
+            styles_backup = existing_strat["styles"]
+
+        softened_strat = _softened_position_strategy(language)
+        if styles_backup:
+            softened_strat["styles"] = styles_backup
+        battle_plan["position_strategy"] = softened_strat
 
 
 def _softened_position_advice(language: str) -> dict[str, str]:
