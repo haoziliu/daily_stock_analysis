@@ -123,11 +123,17 @@ def _sync_softened_dashboard_fields(
     )
     dashboard["operation_advice"] = softened_advice
     dashboard["decision_type"] = "hold"
+    dashboard["market_guardrail_applied"] = True
 
     core = dashboard.get("core_conclusion")
     if isinstance(core, dict):
-        core["one_sentence"] = softened_advice
-        core["position_advice"] = _softened_position_advice(language)
+        orig_one_sentence = str(core.get("one_sentence") or "").strip()
+        if not orig_one_sentence or len(orig_one_sentence) <= 6 or orig_one_sentence in ["立即买入并积极加仓", "买入", "强烈买入", "积极买入", "建议买入"]:
+            core["one_sentence"] = softened_advice
+
+        existing_pos_advice = core.get("position_advice")
+        if not isinstance(existing_pos_advice, dict) or not existing_pos_advice.get("no_position") or len(str(existing_pos_advice.get("no_position"))) <= 10:
+            core["position_advice"] = _softened_position_advice(language)
 
     battle_plan = dashboard.get("battle_plan")
     if isinstance(battle_plan, dict):
@@ -139,6 +145,12 @@ def _sync_softened_dashboard_fields(
         softened_strat = _softened_position_strategy(language)
         if styles_backup:
             softened_strat["styles"] = styles_backup
+
+        if isinstance(existing_strat, dict) and existing_strat.get("entry_plan") and len(str(existing_strat.get("entry_plan"))) > 12:
+            softened_strat["entry_plan"] = existing_strat["entry_plan"]
+        if isinstance(existing_strat, dict) and existing_strat.get("risk_control") and len(str(existing_strat.get("risk_control"))) > 12:
+            softened_strat["risk_control"] = existing_strat["risk_control"]
+
         battle_plan["position_strategy"] = softened_strat
 
 
