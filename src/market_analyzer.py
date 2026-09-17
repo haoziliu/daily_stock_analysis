@@ -119,6 +119,45 @@ class MarketLightReviewResult:
     structured_payload: Dict[str, Any] = field(default_factory=dict)
 
 
+def format_vix_sentiment(vix_index: MarketIndex, language: str = "zh") -> str:
+    """根据 VIX 点位映射为市场波动率与情绪定性"""
+    level = float(getattr(vix_index, "current", 0.0) or 0.0)
+    if level <= 0:
+        return ""
+    change_pct = float(getattr(vix_index, "change_pct", 0.0) or 0.0)
+    direction = "↑" if change_pct > 0 else "↓" if change_pct < 0 else "-"
+    pct_str = f" ({direction}{abs(change_pct):.2f}%)" if change_pct != 0 else ""
+
+    if level < 15:
+        tier_zh, tier_en = "低波动/平稳偏自满 (Low Volatility / Complacency)", "Low Volatility / Complacency"
+        desc_zh = "避险情绪低迷，市场处于低波动常态运行区间，需防范过度自满后的突发变盘。"
+        desc_en = "Volatility is low and risk-off sentiment is subdued; be mindful of market complacency."
+    elif level < 20:
+        tier_zh, tier_en = "常态波动/风险可控 (Normal / Controlled)", "Normal / Controlled Risk"
+        desc_zh = "波动率处于历史中枢合理区间，多空博弈有序，情绪健康。"
+        desc_en = "Volatility is within normal historical ranges; balanced sentiment."
+    elif level < 30:
+        tier_zh, tier_en = "波动加剧/避险情绪升温 (Elevated / Caution)", "Elevated Volatility / Caution"
+        desc_zh = "市场焦虑情绪上升，防范突发下行风险与宽幅洗盘，警惕高估值成长股回撤。"
+        desc_en = "Volatility is elevated; hedge against market pullbacks and watch tech valuations."
+    else:
+        tier_zh, tier_en = "极度恐慌/剧烈动荡 (Extreme Fear / Panic)", "Extreme Fear / Panic"
+        desc_zh = "市场处于高度恐慌抛售或对冲状态，短线流动性风险加大，顺势交易防范踩踏。"
+        desc_en = "Extreme market fear and panic; exercise maximum risk control."
+
+    if language == "en":
+        return (
+            f"- VIX Level: {level:.2f}{pct_str}\n"
+            f"- Volatility Regime: {tier_en}\n"
+            f"- Sentiment Note: {desc_en}"
+        )
+    return (
+        f"- VIX 点位：{level:.2f}{pct_str}\n"
+        f"- 波动率状态：{tier_zh}\n"
+        f"- 情绪研判参考：{desc_zh}"
+    )
+
+
 class MarketAnalyzer:
     """
     大盘复盘分析器
@@ -1682,6 +1721,24 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             url_line = f"\n   URL: {url}" if url else ""
             news_text += f"{i}. {title}{meta}\n   {snippet or '-'}{url_line}\n"
         
+        # VIX 情绪指标（若存在）
+        vix_index = next(
+            (idx for idx in overview.indices if str(idx.code or "").upper() in ("VIX", "^VIX")),
+            None,
+        )
+        vix_block = ""
+        if vix_index and vix_index.current > 0:
+            vix_sentiment_text = format_vix_sentiment(vix_index, language=review_language)
+            if vix_sentiment_text:
+                if review_language == "en":
+                    vix_block = f"""## Volatility & Market Sentiment (VIX)
+{vix_sentiment_text}
+- Guidance: Factor in VIX regime when evaluating market risk, growth-stock valuation vulnerability, and macro shock risks."""
+                else:
+                    vix_block = f"""## 市场波动率与情绪 (VIX)
+{vix_sentiment_text}
+- 提示：结合 VIX 波动率区间，在复盘中评估避险情绪、资金进攻意愿以及利率决议/宏观催化的潜在冲击。"""
+
         # 按 region 组装市场概况与板块区块（美股/港股/日韩无涨跌家数、板块数据）
         stats_block = ""
         sector_block = ""
@@ -1779,6 +1836,8 @@ Concept lagging: {bottom_concepts_text if bottom_concepts_text else "N/A"}"""
             else "报告要像交易员盘后工作台：先给结论，再按指数、新闻催化和计划展开"
         )
 
+        vix_prompt_insert = f"\n{vix_block}\n" if vix_block else ""
+
         if review_language == "en":
             report_title = self._get_review_title(overview.date).removeprefix("## ").strip()
             return f"""You are a professional {self._get_market_scope_name('en')} analyst. Please produce a concise market recap report based on the data below.
@@ -1799,8 +1858,7 @@ Concept lagging: {bottom_concepts_text if bottom_concepts_text else "N/A"}"""
 {overview.date}
 
 ## Major Indices
-{indices_placeholder}
-
+{indices_placeholder}{vix_prompt_insert}
 {stats_block}
 
 {sector_block}
@@ -1853,8 +1911,7 @@ Output the report content directly, no extra commentary.
 {overview.date}
 
 ## 主要指数
-{indices_placeholder}
-
+{indices_placeholder}{vix_prompt_insert}
 {stats_block}
 
 {sector_block}

@@ -2215,7 +2215,27 @@ class GeminiAnalyzer:
             "position_strategy": {
                 "suggested_position": "建议仓位：X成",
                 "entry_plan": "分批建仓策略描述",
-                "risk_control": "风控策略描述"
+                "risk_control": "风控策略描述",
+                "styles": {
+                    "balanced": {
+                        "suggested_position": "建议仓位：2-3成",
+                        "position_advice": "稳健型策略描述（兼顾中线大盘防守与个股机会的平衡配置）",
+                        "stop_loss": "止损点位及防守纪律",
+                        "risk_control": "稳健风控说明"
+                    },
+                    "aggressive": {
+                        "suggested_position": "建议仓位：3-5成",
+                        "position_advice": "激进型策略描述（侧重短线1-3天博弈、突破动能或超跌反弹试错）",
+                        "stop_loss": "激进型止损点位（严格紧贴支撑止损）",
+                        "risk_control": "激进风控说明"
+                    },
+                    "conservative": {
+                        "suggested_position": "建议仓位：0-2成",
+                        "position_advice": "保守型策略描述（安全边际优先，防守等待确定性信号）",
+                        "stop_loss": "保守型止损点位（触发即走）",
+                        "risk_control": "保守风控说明"
+                    }
+                }
             },
             "action_checklist": [
                 "✅/⚠️/❌ 检查项1：当前结构是否满足激活技能条件",
@@ -2315,8 +2335,19 @@ class GeminiAnalyzer:
 - 只有在接近支撑确认或有效突破压力，且资金流/量价配合时，才能给出买入；接近压力且资金流出时不得追买。
 - 只有在跌破关键支撑、主力资金持续流出或风险显著放大时，才能给出卖出/减仓。
 - 必须输出 `dashboard.phase_decision` 七字段；盘中/午休/临近收盘要给出当前动作、观察条件和下一次检查点。
-- 建议输出可选展示字段 `dashboard.signal_attribution` 六字段；解释推荐理由的构成，包括技术指标、新闻舆情、基本面、市场环境的贡献度，以及最强看多/看空信号。
-- 盘前、非交易日或未知阶段不得伪造今日盘中走势；quote/daily_bars/technical 存在 stale、fallback、missing、fetch_failed、partial 或 estimated 时，`confidence_level` 不得为高。"""
+- 盘前、非交易日或未知阶段不得伪造今日盘中走势；quote/daily_bars/technical 存在 stale、fallback、missing、fetch_failed、partial 或 estimated 时，`confidence_level` 不得为高。
+
+## 周期与风格解耦指引（短线博弈 vs 中线防守）
+
+1. **双周期视角**：
+   - 在 `short_term_outlook`（短期1-3日）重点评估短线资金动向、MA5回踩/乖离率、事件催化与盘口动能；
+   - 在 `medium_term_outlook`（中期1-2周）重点评估均线多空结构、估值中枢与大盘宏观风险。
+2. **大盘偏弱时的风格分流与个股独立表达**：
+   - 若大盘偏弱或震荡，整体策略偏防守，稳健型（balanced）与保守型（conservative）建议应严格控制仓位、等待右侧企稳，不盲目追高；
+   - **但若个股自身具备独立强势特征（如逆势放量突破、超跌企稳并获得强均线支撑、或强催化爆发）**：
+     - 必须在 `position_strategy.styles.aggressive`（激进型）中给出明确的**短线轻仓试错买点与策略**；
+     - 必须同时附带明确的**止损位与快进快出风控纪律**；
+     - 严禁将所有具备独立 Alpha 的个股在所有风格下一律降为毫无操作性的“观望”。"""
 
     TEXT_SYSTEM_PROMPT = """你是一位专业的股票分析助手。
 
