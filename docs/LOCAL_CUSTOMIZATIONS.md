@@ -159,7 +159,7 @@
 * **类型**：`自动化发布`
 * **设计初衷**：
   - 分析结束后运行 `export_to_json.py`，从 SQLite 数据库提取最新 7 天内各标的最新分析结果，剥离 `raw_result`、`news_content` 等冗余文本，输出精简高效的 `public/daily_report.json`；
-  - 配合 Cloudflare Pages Action，自动将 `public/` 目录同步部署至 CDN 全球加速节点。
+  - 配合 Cloudflare Wrangler Action (`cloudflare/wrangler-action`)，自动将 `public/` 目录同步部署至 CDN 全球加速节点（需配置 `CLOUDFLARE_API_TOKEN`）。
 
 ---
 

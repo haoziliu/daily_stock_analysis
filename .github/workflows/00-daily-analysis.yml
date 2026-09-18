@@ -546,13 +546,12 @@ jobs:
           python export_to_json.py
 
       - name: Deploy to Cloudflare Pages
-        if: steps.analyze.outputs.skipped != 'true'
-        uses: cloudflare/pages-action@v1
+        if: steps.analyze.outputs.skipped != 'true' && (secrets.CLOUDFLARE_API_TOKEN != '' || vars.CLOUDFLARE_API_TOKEN != '')
+        uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: 'daily-stock-analysis'
-          directory: 'public'
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN || vars.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy public --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'daily-stock-analysis' }}
       
       - name: 上传分析报告
         uses: actions/upload-artifact@v6
