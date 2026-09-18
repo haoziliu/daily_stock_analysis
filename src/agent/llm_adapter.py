@@ -474,11 +474,27 @@ class LLMToolAdapter:
                 )
                 logger.warning("Agent LLM: no Agent-safe channel deployments after Hermes filtering")
                 return
-            self._router = Router(
-                model_list=model_list,
-                routing_strategy="simple-shuffle",
-                num_retries=2,
-            )
+            default_timeout = float(getattr(config, "generation_backend_timeout_seconds", 60.0) or 60.0)
+            try:
+                litellm.request_timeout = default_timeout
+            except Exception:
+                pass
+            try:
+                self._router = Router(
+                    model_list=model_list,
+                    routing_strategy="simple-shuffle",
+                    num_retries=2,
+                    timeout=default_timeout,
+                )
+            except TypeError:
+                try:
+                    self._router = Router(
+                        model_list=model_list,
+                        routing_strategy="simple-shuffle",
+                        num_retries=2,
+                    )
+                except TypeError:
+                    self._router = None
             unique_models = list(dict.fromkeys(
                 e['litellm_params']['model'] for e in model_list
             ))
@@ -498,6 +514,12 @@ class LLMToolAdapter:
             self._litellm_available = True
             return
 
+        default_timeout = float(getattr(config, "generation_backend_timeout_seconds", 60.0) or 60.0)
+        try:
+            litellm.request_timeout = default_timeout
+        except Exception:
+            pass
+
         if len(keys) > 1:
             ep = extra_litellm_params(litellm_model, config)
             legacy_model_list = [
@@ -512,11 +534,22 @@ class LLMToolAdapter:
                 for k in keys
             ]
             self._legacy_router_model_list = legacy_model_list
-            self._router = Router(
-                model_list=legacy_model_list,
-                routing_strategy="simple-shuffle",
-                num_retries=2,
-            )
+            try:
+                self._router = Router(
+                    model_list=legacy_model_list,
+                    routing_strategy="simple-shuffle",
+                    num_retries=2,
+                    timeout=default_timeout,
+                )
+            except TypeError:
+                try:
+                    self._router = Router(
+                        model_list=legacy_model_list,
+                        routing_strategy="simple-shuffle",
+                        num_retries=2,
+                    )
+                except TypeError:
+                    self._router = None
             logger.info(
                 f"Agent LLM: Legacy Router initialized with {len(keys)} keys "
                 f"for {litellm_model}"
@@ -692,14 +725,14 @@ class LLMToolAdapter:
         model_short = model.split("/")[-1] if "/" in model else model
         extra = get_thinking_extra_body(model_short)
 
+        default_timeout = float(getattr(self._config, "generation_backend_timeout_seconds", 60.0) or 60.0)
         call_kwargs: Dict[str, Any] = {
             "model": model,
             "messages": openai_messages,
+            "timeout": float(timeout) if timeout is not None else default_timeout,
         }
         if max_tokens is not None:
             call_kwargs["max_tokens"] = max_tokens
-        if timeout is not None:
-            call_kwargs["timeout"] = timeout
 
         if extra:
             call_kwargs["extra_body"] = extra

@@ -2563,6 +2563,11 @@ class GeminiAnalyzer:
             return
 
         self._litellm_available = True
+        default_timeout = float(getattr(config, "generation_backend_timeout_seconds", 60.0) or 60.0)
+        try:
+            litellm.request_timeout = default_timeout
+        except Exception:
+            pass
 
         # --- Channel / YAML path: build Router from pre-built model_list ---
         if self._has_channel_config(config):
@@ -2586,10 +2591,18 @@ class GeminiAnalyzer:
                     model_list=router_model_list,
                     routing_strategy="simple-shuffle",
                     num_retries=2,
+                    timeout=default_timeout,
                 )
             except TypeError:
-                logger.debug("Analyzer LLM: Router constructor signature not compatible; fallback to direct mode")
-                self._router = None
+                try:
+                    self._router = Router(
+                        model_list=router_model_list,
+                        routing_strategy="simple-shuffle",
+                        num_retries=2,
+                    )
+                except TypeError:
+                    logger.debug("Analyzer LLM: Router constructor signature not compatible; fallback to direct mode")
+                    self._router = None
             else:
                 unique_models = list(dict.fromkeys(
                     e['litellm_params']['model'] for e in model_list
@@ -2631,10 +2644,18 @@ class GeminiAnalyzer:
                     model_list=legacy_model_list,
                     routing_strategy="simple-shuffle",
                     num_retries=2,
+                    timeout=default_timeout,
                 )
             except TypeError:
-                logger.debug("Analyzer LLM: Legacy Router constructor signature not compatible; using legacy model_list fallback")
-                self._router = None
+                try:
+                    self._router = Router(
+                        model_list=legacy_model_list,
+                        routing_strategy="simple-shuffle",
+                        num_retries=2,
+                    )
+                except TypeError:
+                    logger.debug("Analyzer LLM: Legacy Router constructor signature not compatible; using legacy model_list fallback")
+                    self._router = None
             else:
                 logger.info(
                     f"Analyzer LLM: Legacy Router initialized with {len(legacy_model_list)} keys "
@@ -2868,6 +2889,11 @@ class GeminiAnalyzer:
         wire_models = resolve_fallback_litellm_wire_models(model, config.llm_model_list)
         register_fallback_model_pricing(wire_models)
         effective_kwargs = dict(call_kwargs)
+        if "timeout" not in effective_kwargs and getattr(config, "generation_backend_timeout_seconds", None):
+            try:
+                effective_kwargs["timeout"] = float(config.generation_backend_timeout_seconds)
+            except (TypeError, ValueError):
+                pass
         if use_channel_router and self._router and model in router_model_names:
             return self._router.completion(**effective_kwargs)
         if self._router and model == config.litellm_model and not use_channel_router:
@@ -3400,7 +3426,15 @@ class GeminiAnalyzer:
             or 8192
         )
         requested_temperature = generation_config.get('temperature', 0.7)
-        requested_timeout = generation_config.get("timeout")
+        requested_timeout_raw = (
+            generation_config.get("timeout")
+            or getattr(config, "generation_backend_timeout_seconds", None)
+            or 60.0
+        )
+        try:
+            requested_timeout = float(requested_timeout_raw)
+        except (TypeError, ValueError):
+            requested_timeout = 60.0
 
         models_to_try = [config.litellm_model] + (config.litellm_fallback_models or [])
         models_to_try = [m for m in models_to_try if m]

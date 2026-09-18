@@ -1,4 +1,4 @@
-﻿# 本地定制化与上游补丁记录 (Local Customizations & Patches)
+# 本地定制化与上游补丁记录 (Local Customizations & Patches)
 
 本文档是本仓库（Fork）对比上游官方仓库（`ZhuLinsen/daily_stock_analysis`）所做的**全部本地优化、绕开方案（Workarounds）与定制功能**的唯一持久化索引。
 
@@ -16,6 +16,7 @@
   - [1.1 非 A 股（美股/港股）资金流与风控校准跳过](#11-非-a-股美股港股资金流与风控校准跳过)
   - [1.2 yfinance 日期索引安全提取](#12-yfinance-日期索引安全提取)
   - [1.3 美股大盘复盘统一语言配置](#13-美股大盘复盘统一语言配置)
+  - [1.4 LiteLLM / Router 默认超时兜底与全局超时继承](#14-litellm--router-默认超时兜底与全局超时继承)
 - [2. 业务策略与分析引擎增强 (Engine & Strategies)](#2-业务策略与分析引擎增强-engine--strategies)
   - [2.1 仓位策略三种风险偏好（稳健/激进/保守）差异化推导与 Schema 支持](#21-仓位策略三种风险偏好稳健激进保守差异化推导与-schema-支持)
   - [2.2 大盘环境防护栏“软化”与徽章提示机制](#22-大盘环境防护栏软化与徽章提示机制)
@@ -67,6 +68,22 @@
 * **问题背景**：上游早期代码硬编码了 `if self.region == "us": return "en"`，导致配置为中文的用户在分析美股大盘时依然被强制输出英文报告。
 * **本地实现**：移除该硬编码判断，统一通过全局 `REPORT_LANGUAGE` 配置决定复盘语言。
 * **上游追踪 / 移除条件**：永久生效。
+
+### 1.4 LiteLLM / Router 默认超时兜底与全局超时继承
+* **核心文件**：
+  - [`src/analyzer.py`](file:///c:/Users/Admin/Project/daily_stock_analysis/src/analyzer.py) (`_init_litellm`, `_dispatch_litellm_completion`, `_call_litellm_impl`)
+  - [`src/agent/llm_adapter.py`](file:///c:/Users/Admin/Project/daily_stock_analysis/src/agent/llm_adapter.py) (`_init_litellm`, `_call_litellm_model`)
+  - [`tests/test_litellm_timeout.py`](file:///c:/Users/Admin/Project/daily_stock_analysis/tests/test_litellm_timeout.py)
+* **类型**：`防御性修复 / 健壮性增强`
+* **问题背景**：
+  - LiteLLM 内部默认请求超时为 `litellm.request_timeout = 6000.0` 秒（100 分钟）。
+  - 当上游调用 Gemini / OpenAI / Anthropic 等 API 遇到网络异常、服务端单向挂起（例如 Google API 在 `receive_response_headers` 时无响应头且不关闭 TCP 握手）时，若未显式指定 `timeout`，底层 `httpcore` / socket 会在此连接上死等数十分钟。
+  - 在 GitHub Actions 或定时任务中，这会导致任务直接运行达到 60 分钟上限被 CI 强制杀掉，无法触发 fallback 模型降级或重试机制。
+* **本地实现**：
+  1. **全局默认超时绑定**：在 `GeminiAnalyzer` 与 `LLMToolAdapter` 初始化时，将 `litellm.request_timeout` 设置为 `config.generation_backend_timeout_seconds`（默认 60.0s），并在构造 `Router(..., timeout=default_timeout)` 时显式传入。
+  2. **单次调用兜底透传**：在 `_call_litellm_impl`、`_dispatch_litellm_completion` 与 `_call_litellm_model` 中，若未指定单次调用的 `timeout`，自动继承 `config.generation_backend_timeout_seconds`。
+  3. **自动化测试守卫**：配套 `tests/test_litellm_timeout.py` 验证超时在初始化、单次调用及 Agent 工具调用中的全链路透传。
+* **上游追踪 / 移除条件**：防御性代码长期保留。若上游未来在配置加载层统一对所有 LiteLLM / Router 调用强制注入超时控制，可对照上游实现评估合并。
 
 ---
 
@@ -159,3 +176,4 @@
 | **7** | 非线性多维度综合评分 | `public/index.html`, `export_to_json.py` | 排序算法 | 否（核心定制特性） |
 | **8** | 60 天评分走势持久化与图表 | `export_to_json.py`, `public/score_history.json` | 数据与可视化 | 否（核心定制特性） |
 | **9** | 交易日流控与 Cloudflare 部署 | `main.py`, `export_to_json.py`, `.github/workflows/00-daily-analysis.yml` | CI/CD 与部署 | 否（基础设施扩展） |
+| **10** | LiteLLM / Router 默认超时兜底与全局超时继承 | `src/analyzer.py`, `src/agent/llm_adapter.py` | 异常防护 / 网络健壮性 | 否（防御性代码长期保留） |
