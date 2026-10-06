@@ -102,10 +102,12 @@
   3. **数据契约保障**：Pydantic Schema 完整支持并校验该字段。
 
 ### 2.2 大盘环境防护栏“软化”与徽章提示机制
-* **核心文件**：[`src/daily_market_context_guardrail.py`](file:///c:/Users/Admin/Project/daily_stock_analysis/src/daily_market_context_guardrail.py)
-* **类型**：`风控体验优化`
+* **核心文件**：[`src/daily_market_context_guardrail.py`](file:///c:/Users/Admin/Project/daily_stock_analysis/src/daily_market_context_guardrail.py), [`src/market_analyzer.py`](file:///c:/Users/Admin/Project/daily_stock_analysis/src/market_analyzer.py)
+* **类型**：`风控体验优化 & 算法校准`
 * **设计初衷**：
   - 上游原始防护栏在大盘偏弱时会一刀切重写个股的核心结论和计划，丢失了个股独立的 Alpha 研判逻辑。
+  - **大盘打分权重自适应归一化**（`src/market_analyzer.py`）：非 A 股市场（如美股/港股）缺失涨跌家数与涨跌停统计时，避免固定默认 50 分拉低 65% 权重导致大盘永远死锁在 50~58 分的数学死循环，而是动态自适应将权重归一化至可用维度（如指数维度），让美股普涨日正常达到绿灯（≥60分）。
+  - **防风控误杀机制精细化**（`src/daily_market_context_guardrail.py`）：仅在真正发生系统性高风险、退潮（`high_risk`, `market_cooling`）或明确限仓（`low_position_cap`, `position_cap`）时才执行强制软化；普通震荡/温和保守大盘不再一刀切将个股强行抹杀为“观望/52分”，保留个股真实买入建议与评分梯度，由各标的内置的“稳健、激进、保守”三风格仓位策略（`styles`）承担差异化风控职责。
   - 本地优化后：**保留 LLM 原有个股深度研判与策略**，仅对极端追高进行软化约束，并在 dashboard 中显式注入 `market_guardrail_applied = True`，同时保护 `position_strategy.styles` 结构不被冲掉。
 
 ---

@@ -4500,6 +4500,7 @@ Index text.
         assert snapshot["dimensions"]["breadth"] == {"score": 50, "available": False}
         assert snapshot["dimensions"]["index"]["available"] is True
         assert snapshot["dimensions"]["limit"] == {"score": 50, "available": False}
+        assert snapshot["score"] == 56
 
     @pytest.mark.parametrize(
         ("region", "profile_name", "index_code", "index_name"),

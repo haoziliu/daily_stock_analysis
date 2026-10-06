@@ -1578,7 +1578,26 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
         else:
             data_quality = "partial"
 
-        score = int(round(breadth_score * 0.45 + index_score * 0.35 + limit_score * 0.20))
+        base_weights = {
+            "breadth": 0.45,
+            "index": 0.35,
+            "limit": 0.20,
+        }
+        available_dimensions = {
+            k: v for k, v in dimensions.items() if v["available"]
+        }
+        total_available_weight = sum(base_weights[k] for k in available_dimensions)
+        if total_available_weight > 0:
+            score = int(
+                round(
+                    sum(
+                        dim["score"] * (base_weights[k] / total_available_weight)
+                        for k, dim in available_dimensions.items()
+                    )
+                )
+            )
+        else:
+            score = 50
         if self._get_review_language() == "en":
             if score >= 70:
                 label = "risk-on"

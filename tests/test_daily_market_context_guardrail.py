@@ -299,3 +299,27 @@ def test_conservative_market_context_does_not_soften_do_not_buy_in_english() -> 
     assert adjustments == []
     assert result.decision_type == "buy"
     assert result.operation_advice == "Do not buy now; sell into strength."
+
+
+def test_mild_conservative_context_without_severe_risk_does_not_soften_buy() -> None:
+    result = _result()
+    result.operation_advice = "建议买入，多头趋势稳健。"
+    result.decision_type = "buy"
+    result.sentiment_score = 78
+
+    adjustments = apply_daily_market_context_guardrail(
+        result,
+        daily_market_context={
+            "region": "us",
+            "trade_date": "2026-10-05",
+            "summary": "今日美股普涨，整体市场处于乐观但存戒备状态，控制仓位并等待量价确认。",
+            "risk_tags": ["conservative"],
+        },
+        report_language="zh",
+    )
+
+    assert adjustments == []
+    assert result.decision_type == "buy"
+    assert result.operation_advice == "建议买入，多头趋势稳健。"
+    assert result.sentiment_score == 78
+

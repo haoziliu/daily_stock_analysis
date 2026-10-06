@@ -13,10 +13,10 @@ from src.report_language import (
 )
 
 
-_CONSERVATIVE_TAGS = {"high_risk", "market_cooling", "conservative", "low_position_cap"}
-_CONSERVATIVE_TEXT_MARKERS_ZH = ("退潮", "观望", "高风险", "谨慎", "保守", "仓位上限", "仓位不超过", "轻仓")
-_CONSERVATIVE_TEXT_MARKERS_EN = ("high risk", "risk-off", "risk off", "watch", "cautious", "conservative", "position cap", "position limit")
-_CONSERVATIVE_TEXT_MARKERS_KO = ("고위험", "관망", "위험", "신중", "보수", "비중 상한", "비중 축소", "경량")
+_CONSERVATIVE_TAGS = {"high_risk", "market_cooling", "low_position_cap"}
+_CONSERVATIVE_TEXT_MARKERS_ZH = ("退潮", "高风险", "仓位上限", "仓位不超过", "轻仓")
+_CONSERVATIVE_TEXT_MARKERS_EN = ("high risk", "risk-off", "risk off", "position cap", "position limit")
+_CONSERVATIVE_TEXT_MARKERS_KO = ("고위험", "위험", "비중 상한", "비중 축소", "경량")
 _AGGRESSIVE_BUY_MARKERS_ZH = (
     "立即买入",
     "马上买入",
