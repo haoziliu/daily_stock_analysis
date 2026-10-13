@@ -145,6 +145,13 @@
                     <div>
                         <h2 class="text-lg font-black text-gray-900">{{ current.name }}</h2>
                         <div class="text-sm text-gray-500 mt-1">{{ current.code }} | 分析日期: {{ current.created_at.split(' ')[0] }}</div>
+                        <div v-if="current?.market_snapshot" class="text-xs text-gray-500 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span v-if="current.market_snapshot.open && current.market_snapshot.open !== 'N/A'">开: <span class="font-semibold text-gray-700">{{ current.market_snapshot.open }}</span></span>
+                            <span v-if="current.market_snapshot.high && current.market_snapshot.high !== 'N/A'">高: <span class="font-semibold text-gray-700">{{ current.market_snapshot.high }}</span></span>
+                            <span v-if="current.market_snapshot.low && current.market_snapshot.low !== 'N/A'">低: <span class="font-semibold text-gray-700">{{ current.market_snapshot.low }}</span></span>
+                            <span v-if="current.market_snapshot.amplitude && current.market_snapshot.amplitude !== 'N/A'">振幅: <span class="font-semibold text-gray-700">{{ current.market_snapshot.amplitude }}</span></span>
+                            <span v-if="current.market_snapshot.volume && current.market_snapshot.volume !== 'N/A'">量: <span class="font-semibold text-gray-700">{{ current.market_snapshot.volume }}</span></span>
+                        </div>
                     </div>
 
                     <div class="text-right flex-shrink-0">
@@ -358,6 +365,24 @@
                                 </div>
                             </div>
 
+                            <!-- 核心多空看点 (最强做多/做空信号) -->
+                            <div v-if="current?.dashboard?.signal_attribution?.strongest_bullish_signal || current?.dashboard?.signal_attribution?.strongest_bearish_signal" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs md:text-sm">
+                                <div v-if="current?.dashboard?.signal_attribution?.strongest_bullish_signal" class="bg-emerald-50/80 border border-emerald-200/80 rounded-lg p-2.5 text-emerald-900 flex items-start gap-2">
+                                    <span class="text-base leading-none shrink-0">🟢</span>
+                                    <div>
+                                        <span class="font-bold block mb-0.5 text-emerald-800 text-xs">核心多头看点</span>
+                                        <span class="text-emerald-950 leading-relaxed">{{ current.dashboard.signal_attribution.strongest_bullish_signal }}</span>
+                                    </div>
+                                </div>
+                                <div v-if="current?.dashboard?.signal_attribution?.strongest_bearish_signal" class="bg-rose-50/80 border border-rose-200/80 rounded-lg p-2.5 text-rose-900 flex items-start gap-2">
+                                    <span class="text-base leading-none shrink-0">🔴</span>
+                                    <div>
+                                        <span class="font-bold block mb-0.5 text-rose-800 text-xs">核心风险隐患</span>
+                                        <span class="text-rose-950 leading-relaxed">{{ current.dashboard.signal_attribution.strongest_bearish_signal }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- 交易执行观察清单 -->
                             <div v-if="current?.dashboard?.phase_decision?.watch_conditions?.length > 0">
                                 <div class="text-sm font-bold text-gray-800 mb-1.5">📌 交易观察清单</div>
@@ -564,11 +589,45 @@
                         </div>
                     </div>
 
-                    <!-- TAB 3: 情报与催化剂 -->
-                    <div v-show="activeTab === 'intelligence'" class="space-y-6">
+                    <!-- TAB 3: 舆情与基本面 -->
+                    <div v-show="activeTab === 'intelligence'" class="space-y-5">
+                        <!-- 热门题材/概念标签条 -->
+                        <div v-if="getHotTopicList(current).length > 0" class="flex flex-wrap items-center gap-2 bg-white rounded-xl shadow-sm border border-gray-200 p-3.5">
+                            <span class="text-xs font-bold text-gray-500 flex items-center gap-1 shrink-0">
+                                <span>🔥</span> 热门概念:
+                            </span>
+                            <span v-for="(topic, idx) in getHotTopicList(current)" :key="idx"
+                                class="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100/80">
+                                # {{ topic }}
+                            </span>
+                        </div>
+
+                        <!-- 🏢 深度基本面与公司画像 -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
+                            v-if="current?.fundamental_analysis || current?.sector_position || current?.company_highlights">
+                            <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center justify-between">
+                                <span class="flex items-center"><span class="mr-2">🏢</span> 深度基本面与公司画像</span>
+                            </h3>
+                            <div class="space-y-3.5 text-sm">
+                                <div v-if="current?.fundamental_analysis" class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
+                                    <span class="field-label w-24 shrink-0 mb-1 md:mb-0">基本面分析:</span>
+                                    <span class="text-gray-600 leading-relaxed">{{ current.fundamental_analysis }}</span>
+                                </div>
+                                <div v-if="current?.sector_position" class="flex flex-col md:flex-row md:items-start border-b border-gray-50 pb-3">
+                                    <span class="field-label w-24 shrink-0 mb-1 md:mb-0">行业与地位:</span>
+                                    <span class="text-gray-600 leading-relaxed">{{ current.sector_position }}</span>
+                                </div>
+                                <div v-if="current?.company_highlights" class="flex flex-col md:flex-row md:items-start">
+                                    <span class="field-label w-24 shrink-0 mb-1 md:mb-0">核心亮点:</span>
+                                    <span class="text-gray-600 leading-relaxed">{{ current.company_highlights }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 📰 舆情情报与催化剂 -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                             <h3 class="card-title border-b border-gray-100 pb-2 mb-3 flex items-center">
-                                <span class="mr-2">📰</span> 舆情与基本面
+                                <span class="mr-2">📰</span> 舆情情报与催化剂
                             </h3>
                             <div class="space-y-3 text-sm">
                                 <div class="flex items-start">
@@ -917,6 +976,18 @@
                     return item.realtime_quote?.change_pct || 0;
                 }
 
+                const getHotTopicList = (item) => {
+                    if (!item || !item.hot_topics) return []
+                    if (Array.isArray(item.hot_topics)) return item.hot_topics
+                    if (typeof item.hot_topics === 'string') {
+                        return item.hot_topics
+                            .split(/[,，、]/)
+                            .map(t => t.trim())
+                            .filter(t => t.length > 0)
+                    }
+                    return []
+                }
+
                 onMounted(async () => {
                     try {
                         // 同时请求日报数据与历史得分走势数据
@@ -982,7 +1053,7 @@
                     getDisplayAdvice, getDecisionLabel, getTrendScore, getRiskCount,
                     getPrimarySummary, getSentimentScore, hasHistory,
                     getStyleSuggestedPosition, getStylePositionAdvice, getStyleStopLoss, getStyleRiskControl,
-                    getStyleLabel, getStyleBadgeClass, isMarketGuardrailApplied
+                    getStyleLabel, getStyleBadgeClass, isMarketGuardrailApplied, getHotTopicList
                 }
             }
         }).mount('#app')
